@@ -1,0 +1,437 @@
+@import "tailwindcss";
+
+/* ---------- Design tokens (light / dark) ---------- */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f0f2f5;
+  --border: #e3e6eb;
+  --text: #1c2130;
+  --text-muted: #667085;
+  --accent: #2fb784;
+  --accent-soft: #d8f5e9;
+  --ok: #2fb784;
+  --warn: #e9a23b;
+  --hot: #e8743b;
+  --danger: #e5484d;
+  --track: #e7eaef;
+  --shadow: 0 10px 30px rgba(20, 24, 36, 0.14), 0 2px 6px rgba(20, 24, 36, 0.08);
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14171f;
+    --surface: #1c2029;
+    --surface-2: #232834;
+    --border: #2d3340;
+    --text: #e8ebf1;
+    --text-muted: #8d95a5;
+    --accent: #5fd3a5;
+    --accent-soft: #1f3a31;
+    --track: #2b313d;
+    --shadow: 0 12px 34px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
+  }
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+body.is-dashboard {
+  background: var(--bg);
+}
+body.is-pet {
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.mono {
+  font-family: var(--mono);
+}
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Cards / controls ---------- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 9px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 550;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.12s, transform 0.08s;
+}
+.btn:hover {
+  background: var(--border);
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.btn-primary {
+  background: var(--accent);
+  border-color: transparent;
+  color: #0d2a1f;
+}
+.btn-primary:hover {
+  background: color-mix(in srgb, var(--accent) 85%, white);
+}
+.btn-danger {
+  color: var(--danger);
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+input[type="range"] {
+  accent-color: var(--accent);
+}
+
+/* ---------- Pet popover ---------- */
+.popover {
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+}
+.popover-enter {
+  animation: pop-in 0.16s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+}
+
+/* ---------- Pet animations ---------- */
+.pet svg {
+  overflow: visible;
+}
+.pet .body-group {
+  transform-box: view-box;
+  transform-origin: 80px 142px;
+}
+.pet .eyes {
+  transform-box: view-box;
+  transform-origin: 80px 98px;
+}
+.pet .spin {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: spin 2.4s linear infinite;
+}
+.pet .orbit {
+  transform-box: view-box;
+  transform-origin: 80px 42px;
+  animation: spin 1.6s linear infinite;
+}
+.pet .float-up {
+  animation: float-up 2.8s ease-in infinite;
+}
+.pet .float-up.d1 {
+  animation-delay: 0.9s;
+}
+.pet .float-up.d2 {
+  animation-delay: 1.8s;
+}
+.pet .dot {
+  animation: dot 1.2s ease-in-out infinite;
+}
+.pet .dot.d1 {
+  animation-delay: 0.2s;
+}
+.pet .dot.d2 {
+  animation-delay: 0.4s;
+}
+.pet .twinkle {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: twinkle 0.9s ease-in-out infinite;
+}
+.pet .twinkle.d1 {
+  animation-delay: 0.3s;
+}
+.pet .twinkle.d2 {
+  animation-delay: 0.6s;
+}
+.pet .bob-sm {
+  animation: bob-sm 1.6s ease-in-out infinite;
+}
+.pet .sweat {
+  animation: sweat 2.2s ease-in infinite;
+}
+.pet .tap-l {
+  animation: tap 0.36s ease-in-out infinite;
+}
+.pet .tap-r {
+  animation: tap 0.36s ease-in-out infinite 0.18s;
+}
+
+.pet--idle .body-group {
+  animation: bob 3.2s ease-in-out infinite;
+}
+.pet--idle .eyes,
+.pet--coding .eyes,
+.pet--working .eyes,
+.pet--confused .eyes {
+  animation: blink 4.5s infinite;
+}
+.pet--coding .body-group {
+  animation: bob 0.72s ease-in-out infinite;
+}
+.pet--thinking .body-group {
+  animation: sway 3.4s ease-in-out infinite;
+}
+.pet--working .body-group {
+  animation: bob 1.1s ease-in-out infinite;
+}
+.pet--looking_at_user .body-group {
+  animation: hop 1.5s ease-in-out infinite;
+}
+.pet--celebrating .body-group {
+  animation: jump 0.9s cubic-bezier(0.3, 0, 0.3, 1) infinite;
+}
+.pet--dizzy .body-group {
+  animation: wobble 0.9s ease-in-out infinite;
+}
+.pet--sleeping .body-group {
+  animation: breathe 4s ease-in-out infinite;
+}
+.pet--slightly_tired .body-group {
+  animation: bob 4.8s ease-in-out infinite;
+}
+.pet--tired .body-group {
+  animation: droop 4s ease-in-out infinite;
+}
+.pet--exhausted .body-group {
+  animation: melt 5s ease-in-out infinite;
+}
+.pet--confused .body-group {
+  animation: tilt 2.6s ease-in-out infinite;
+}
+.pet--overwhelmed .body-group {
+  animation: shake 0.28s linear infinite;
+}
+.pet--static *,
+.pet--static .body-group,
+.pet--static .eyes {
+  animation: none !important;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  50% {
+    transform: translateY(-2.5px) scale(1.01, 0.99);
+  }
+}
+@keyframes bob-sm {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+@keyframes blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+@keyframes sway {
+  0%,
+  100% {
+    transform: rotate(-2.5deg);
+  }
+  50% {
+    transform: rotate(2.5deg);
+  }
+}
+@keyframes hop {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0) scale(1.03);
+  }
+  75% {
+    transform: translateY(-6px) scale(1.03);
+  }
+}
+@keyframes jump {
+  0% {
+    transform: translateY(0) scale(1.08, 0.9);
+  }
+  35% {
+    transform: translateY(-22px) scale(0.95, 1.06);
+  }
+  65% {
+    transform: translateY(-22px) scale(0.97, 1.03);
+  }
+  100% {
+    transform: translateY(0) scale(1.08, 0.9);
+  }
+}
+@keyframes wobble {
+  0%,
+  100% {
+    transform: rotate(-7deg);
+  }
+  50% {
+    transform: rotate(7deg);
+  }
+}
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(1.02, 1.035);
+  }
+}
+@keyframes droop {
+  0%,
+  100% {
+    transform: translateY(4px) scale(1.04, 0.92);
+  }
+  50% {
+    transform: translateY(5px) scale(1.05, 0.9);
+  }
+}
+@keyframes melt {
+  0%,
+  100% {
+    transform: scale(1.18, 0.66);
+  }
+  50% {
+    transform: scale(1.2, 0.64);
+  }
+}
+@keyframes tilt {
+  0%,
+  100% {
+    transform: rotate(-9deg);
+  }
+  50% {
+    transform: rotate(-5deg);
+  }
+}
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(-1.5px);
+  }
+  50% {
+    transform: translateX(1.5px);
+  }
+}
+@keyframes float-up {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.7);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(10px, -26px) scale(1.1);
+  }
+}
+@keyframes dot {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes twinkle {
+  0%,
+  100% {
+    transform: scale(0.5);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+@keyframes sweat {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+@keyframes tap {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pet * {
+    animation: none !important;
+  }
+}
