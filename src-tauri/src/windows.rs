@@ -54,17 +54,67 @@ pub fn set_pet_always_on_top(app: &AppHandle, on: bool) {
 
 #[cfg(target_os = "macos")]
 fn macos_set_level(win: &tauri::WebviewWindow, on: bool) {
-    use objc2_app_kit::{NSWindow, NSWindowCollectionBehavior as B};
-    /// kCGStatusWindowLevel — above normal and floating windows, incl. full-screen apps.
+    if let Ok(ptr) = win.ns_window() {
+        // SAFETY: `ns_window` is this window's live NSWindow and we are on the main
+        // thread (run_on_main_thread), as AppKit requires.
+        unsafe { mac_panel::apply(ptr, on) };
+    }
+}
+
+/// macOS only shows another app's window inside a full-screen Space (e.g. a
+/// full-screen Chrome) when that window is a non-activating *panel*. Tauri creates
+/// a regular NSWindow, so we swap the pet window's class to an NSPanel subclass
+/// (the same technique as the `tauri-nspanel` plugin) and configure it as an
+/// auxiliary, non-activating, all-Spaces panel.
+#[cfg(target_os = "macos")]
+mod mac_panel {
+    use objc2::runtime::{AnyObject, NSObject};
+    use objc2::{define_class, ClassType, MainThreadOnly};
+    use objc2_app_kit::{
+        NSPanel, NSResponder, NSWindow, NSWindowCollectionBehavior as B, NSWindowStyleMask,
+    };
+    use std::ffi::c_void;
+
+    /// kCGStatusWindowLevel — above normal and floating windows.
     const STATUS_LEVEL: isize = 25;
     const NORMAL_LEVEL: isize = 0;
 
-    let Ok(ptr) = win.ns_window() else {
-        return;
-    };
-    // SAFETY: `ns_window` returns this window's live NSWindow pointer and we are on
-    // the main thread (run_on_main_thread), as AppKit requires.
-    let ns: &NSWindow = unsafe { &*(ptr as *const NSWindow) };
-    ns.setLevel(if on { STATUS_LEVEL } else { NORMAL_LEVEL });
-    ns.setCollectionBehavior(B::CanJoinAllSpaces | B::FullScreenAuxiliary | B::IgnoresCycle);
+    define_class!(
+        // SAFETY: NSPanel has no subclassing requirements; no Drop impl, no ivars.
+        #[unsafe(super(NSPanel, NSWindow, NSResponder, NSObject))]
+        #[thread_kind = MainThreadOnly]
+        #[name = "AICodingPetPanel"]
+        struct PetPanel;
+
+        impl PetPanel {
+            // Borderless panels refuse key status by default; the pet popover needs
+            // keyboard focus (Escape, focus-loss to close).
+            #[unsafe(method(canBecomeKeyWindow))]
+            fn can_become_key_window(&self) -> bool {
+                true
+            }
+
+            #[unsafe(method(canBecomeMainWindow))]
+            fn can_become_main_window(&self) -> bool {
+                false
+            }
+        }
+    );
+
+    /// # Safety
+    /// `ptr` must be a live NSWindow, and this must run on the main thread.
+    pub unsafe fn apply(ptr: *mut c_void, on: bool) {
+        let obj: &AnyObject = &*(ptr as *const AnyObject);
+        if obj.class() != PetPanel::class() {
+            AnyObject::set_class(obj, PetPanel::class());
+        }
+        let panel: &NSPanel = &*(ptr as *const NSPanel);
+        panel.setStyleMask(panel.styleMask() | NSWindowStyleMask::NonactivatingPanel);
+        panel.setFloatingPanel(on);
+        panel.setHidesOnDeactivate(false);
+        panel.setLevel(if on { STATUS_LEVEL } else { NORMAL_LEVEL });
+        panel.setCollectionBehavior(
+            B::CanJoinAllSpaces | B::FullScreenAuxiliary | B::Stationary | B::IgnoresCycle,
+        );
+    }
 }
