@@ -49,6 +49,18 @@ npm run tauri:build        # release bundles
 
 Developer Mode (Dashboard → Developer) mocks every state — offline, idle, working, thinking, waiting, completed, error, 5h = 10/70/90/99, context = 85/95 — so you can test the pet without Claude Code. It is visible in debug builds, or in release builds started with `AI_PET_DEV_MODE=1`.
 
+## Releases & auto-update
+
+Releases are built by GitHub Actions (`.github/workflows/release.yml`) and published on GitHub Releases. Installed apps check `releases/latest/download/latest.json` about 20 s after launch and every 6 h; when a newer version exists, the tray shows **Install Update vX.Y.Z**, which downloads, verifies the signature, installs and restarts. The tray's **Check for Updates…** runs a check on demand.
+
+To ship a release:
+
+1. Bump the version in `package.json`, `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`.
+2. Commit, then `git tag vX.Y.Z && git push origin main --tags`.
+3. When the workflow finishes, review the draft release and click **Publish**. Only published releases reach installed apps.
+
+Update packages are signed with a minisign key (separate from Apple/Windows code signing). The public key is in `tauri.conf.json`; the private key lives outside the repo and must be set as repo secrets `TAURI_SIGNING_PRIVATE_KEY` (key file contents) and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (empty if none). **Losing the private key means existing installs can no longer be updated.** Local `npm run tauri:build` also needs `TAURI_SIGNING_PRIVATE_KEY` set (a path to the key file works).
+
 ## Claude Code integration
 
 Open the dashboard (tray → Open Dashboard) → **Claude Code** tab → **Connect Claude Code**:

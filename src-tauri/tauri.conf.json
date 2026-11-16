@@ -47,6 +47,14 @@
       "icons/icon.ico"
     ],
     "macOS": { "minimumSystemVersion": "11.0" },
-    "windows": { "nsis": { "installMode": "currentUser" } }
+    "windows": { "nsis": { "installMode": "currentUser" } },
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IERCMzM2RTZCMjdCRDJCQzgKUldUSUs3MG5hMjR6MisxYkxZNXZTdHF3eVF3ZzV3TmZhSTBpWWNPTGR3R3R3dUUwL1J2dWlnSjIK",
+      "endpoints": ["https://github.com/youngryul/claudePet/releases/latest/download/latest.json"],
+      "windows": { "installMode": "passive" }
+    }
   }
 }

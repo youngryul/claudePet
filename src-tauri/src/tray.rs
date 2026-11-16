@@ -8,6 +8,7 @@ use tauri_plugin_autostart::ManagerExt;
 pub struct TrayHandles {
     pub status: MenuItem<Wry>,
     pub autostart: CheckMenuItem<Wry>,
+    pub update: MenuItem<Wry>,
 }
 
 pub fn build(app: &AppHandle) -> tauri::Result<()> {
@@ -25,6 +26,13 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
         autostart_enabled,
         None::<&str>,
     )?;
+    let update = MenuItem::with_id(
+        app,
+        "update",
+        crate::updater::CHECK_LABEL,
+        true,
+        None::<&str>,
+    )?;
     let quit = MenuItem::with_id(app, "quit", "Quit AI Coding Pet", true, None::<&str>)?;
     let sep = || PredefinedMenuItem::separator(app);
 
@@ -39,6 +47,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
             &settings,
             &sep()?,
             &autostart,
+            &update,
             &sep()?,
             &quit,
         ],
@@ -63,6 +72,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
                 sync_autostart(app);
                 let _ = app.emit("autostart://changed", enable);
             }
+            "update" => crate::updater::on_tray_click(app),
             "quit" => {
                 crate::platform::placement::flush(app);
                 app.exit(0);
@@ -71,7 +81,11 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
         })
         .build(app)?;
 
-    app.manage(TrayHandles { status, autostart });
+    app.manage(TrayHandles {
+        status,
+        autostart,
+        update,
+    });
     Ok(())
 }
 
@@ -89,5 +103,12 @@ pub fn set_status(app: &AppHandle, label: &str) {
     }
     if let Some(tray) = app.tray_by_id("main") {
         let _ = tray.set_tooltip(Some(format!("AI Coding Pet — {label}")));
+    }
+}
+
+pub fn set_update_item(app: &AppHandle, label: &str, enabled: bool) {
+    if let Some(h) = app.try_state::<TrayHandles>() {
+        let _ = h.update.set_text(label);
+        let _ = h.update.set_enabled(enabled);
     }
 }

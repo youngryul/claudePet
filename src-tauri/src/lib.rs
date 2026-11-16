@@ -12,6 +12,7 @@ pub mod paths;
 pub mod platform;
 pub mod process;
 pub mod tray;
+pub mod updater;
 pub mod windows;
 
 use collector::server::{CollectorSnapshot, CollectorState};
@@ -151,10 +152,12 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec!["--autostart"]),
         ))
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(collector_state.clone())
         .manage(ClickThroughState::default())
         .manage(PositionState::default())
         .manage(process::ProcessProbe::default())
+        .manage(updater::UpdateState::default())
         .setup(move |app| {
             let handle = app.handle().clone();
             let data_dir = paths::ensure_app_data_dir()?;
@@ -172,6 +175,7 @@ pub fn run() {
                 let _ = pet.show();
             }
             platform::click_through::spawn(handle.clone());
+            updater::spawn(handle.clone());
             platform::placement::spawn_flusher(handle);
             Ok(())
         })
