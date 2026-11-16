@@ -121,6 +121,11 @@ fn pet_set_visible(app: tauri::AppHandle, visible: bool) {
 }
 
 #[tauri::command]
+fn pet_set_always_on_top(app: tauri::AppHandle, on: bool) {
+    windows::set_pet_always_on_top(&app, on);
+}
+
+#[tauri::command]
 fn pet_reset_position(app: tauri::AppHandle) {
     platform::placement::reset(&app);
 }
@@ -212,6 +217,7 @@ pub fn run() {
             stats_record_samples,
             pet_set_interaction,
             pet_set_visible,
+            pet_set_always_on_top,
             pet_reset_position,
             open_dashboard,
             tray_set_status,

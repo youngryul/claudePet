@@ -1,14 +1,6 @@
+import { useT } from "@/i18n";
 import type { Metric } from "@/providers/core/types";
 import { formatRelative } from "@/utils/format";
-
-const SOURCE_LABEL: Record<Metric["source"], string> = {
-  claude_statusline: "Reported by Claude Code statusLine",
-  claude_hook: "Reported by Claude Code hooks",
-  process_probe: "Local process check",
-  derived: "Estimated by AI Coding Pet",
-  mock: "Developer mode mock value",
-  unavailable: "Not provided",
-};
 
 export function barColor(pct: number): string {
   if (pct >= 95) return "var(--danger)";
@@ -26,9 +18,10 @@ interface Props {
 }
 
 /** A labelled percentage bar that makes missing data explicit instead of showing 0%. */
-export function UsageBar({ label, metric, hint, compact, unavailableText = "Unavailable" }: Props) {
+export function UsageBar({ label, metric, hint, compact, unavailableText }: Props) {
+  const t = useT();
   const v = metric.value;
-  const title = `${SOURCE_LABEL[metric.source]}${metric.updatedAt ? ` · updated ${formatRelative(metric.updatedAt)}` : ""}`;
+  const title = `${t.metricSource[metric.source]}${metric.updatedAt ? ` · ${t.updated(formatRelative(metric.updatedAt))}` : ""}`;
   return (
     <div title={title} className={compact ? "space-y-1" : "space-y-1.5"}>
       <div className="flex items-baseline justify-between gap-2">
@@ -37,7 +30,7 @@ export function UsageBar({ label, metric, hint, compact, unavailableText = "Unav
           {metric.source === "derived" && <span className="ml-1 opacity-70">≈</span>}
         </span>
         <span className="tnum text-[12px] font-semibold">
-          {v === null ? <span className="font-normal text-[color:var(--text-muted)]">{unavailableText}</span> : `${Math.round(v)}%`}
+          {v === null ? <span className="font-normal text-[color:var(--text-muted)]">{unavailableText ?? t.unavailable}</span> : `${Math.round(v)}%`}
         </span>
       </div>
       <div className="h-[7px] overflow-hidden rounded-full" style={{ background: "var(--track)" }}>

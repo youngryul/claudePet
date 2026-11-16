@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { backend, inTauri, on } from "@/lib/backend";
 import { resolvePetState } from "@/pet/PetStateMachine";
-import { PET_STATE_INFO } from "@/pet/PetStates";
+import { useDocumentLang, useT } from "@/i18n";
 import { getSkin } from "@/pet/skins";
 import { collapse, expand, setBaseSize, type Expansion } from "@/platform/petWindow";
 import { selectStatus, useAI } from "@/stores/aiStore";
@@ -22,6 +22,8 @@ export function PetWindow() {
   const [exp, setExp] = useState<Expansion | null>(null);
   const hitRef = useRef<HTMLDivElement>(null);
   const press = useRef<{ x: number; y: number; dragging: boolean } | null>(null);
+  const t = useT();
+  useDocumentLang();
 
   const { scale, opacity, animations, clickThrough, alwaysOnTop, visible } = settings.pet;
   const base = useMemo(() => ({ width: Math.round(BASE * scale), height: Math.round(BASE * scale) }), [scale]);
@@ -42,7 +44,7 @@ export function PetWindow() {
   // ----- window configuration -----
   useEffect(() => void setBaseSize(base.width, base.height), [base.width, base.height]);
   useEffect(() => {
-    if (inTauri) void getCurrentWindow().setAlwaysOnTop(alwaysOnTop);
+    if (inTauri) void backend.petSetAlwaysOnTop(alwaysOnTop);
   }, [alwaysOnTop]);
   useEffect(() => void backend.petSetVisible(visible), [visible]);
   useEffect(() => {
@@ -125,7 +127,7 @@ export function PetWindow() {
     void backend.openDashboard("dashboard");
   };
 
-  const info = PET_STATE_INFO[resolution.state];
+  const info = t.petStates[resolution.state];
   const stageLeft = exp?.petLeft ?? 0;
   const stageTop = exp?.petTop ?? 0;
   const popLeft = exp ? Math.min(Math.max(stageLeft + base.width / 2 - pop.width / 2, 0), exp.width - pop.width) : 0;

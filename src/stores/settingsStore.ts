@@ -17,6 +17,8 @@ export interface AppSettings {
     showUsage: boolean;
     /** Tiny usage chip under the pet. */
     showUsageBadge: boolean;
+    /** UI language for the dashboard and pet popover. */
+    language: "ko" | "en";
   };
   providers: {
     /** Providers the runtime starts. Only implemented ones do anything. */
@@ -28,7 +30,7 @@ export interface AppSettings {
 export const DEFAULT_SETTINGS: AppSettings = {
   version: 1,
   pet: { visible: true, alwaysOnTop: true, scale: 1, opacity: 1, animations: true, clickThrough: true, skin: "bluecat" },
-  display: { showUsage: true, showUsageBadge: false },
+  display: { showUsage: true, showUsageBadge: false, language: "ko" },
   providers: { enabled: ["claude"], primary: "claude" },
 };
 

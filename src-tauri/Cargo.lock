@@ -37,6 +37,8 @@ dependencies = [
  "dirs 6.0.0",
  "getrandom 0.3.4",
  "log",
+ "objc2",
+ "objc2-app-kit",
  "rusqlite",
  "serde",
  "serde_json",

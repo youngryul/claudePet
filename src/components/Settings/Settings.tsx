@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { backend, inTauri, on } from "@/lib/backend";
 import { PROVIDER_INFO } from "@/providers/registry";
+import { LANGUAGES, useT, type Lang } from "@/i18n";
 import { PET_SKINS } from "@/pet/skins";
 import { useSettings, type AppSettings } from "@/stores/settingsStore";
 
@@ -38,6 +39,8 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
 export function Settings() {
   const { settings, update } = useSettings();
   const [autostart, setAutostart] = useState<boolean | null>(null);
+  const t = useT();
+  const L = t.settings;
 
   useEffect(() => {
     if (!inTauri) return;
@@ -62,25 +65,41 @@ export function Settings() {
 
   return (
     <div className="max-w-2xl space-y-5">
-      <h2 className="text-[18px] font-bold">Settings</h2>
+      <h2 className="text-[18px] font-bold">{L.title}</h2>
 
       <section className="card px-4 py-1">
-        <Row label="Show pet">
-          <Toggle label="Show pet" checked={settings.pet.visible} onChange={(v) => pet({ visible: v })} />
+        <Row label={L.language} hint={L.languageHint}>
+          <select
+            className="btn"
+            value={settings.display.language}
+            onChange={(e) => display({ language: e.target.value as Lang })}
+          >
+            {LANGUAGES.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
         </Row>
-        <Row label="Always on top">
-          <Toggle label="Always on top" checked={settings.pet.alwaysOnTop} onChange={(v) => pet({ alwaysOnTop: v })} />
+      </section>
+
+      <section className="card px-4 py-1">
+        <Row label={L.showPet}>
+          <Toggle label={L.showPet} checked={settings.pet.visible} onChange={(v) => pet({ visible: v })} />
         </Row>
-        <Row label="Start at login" hint={autostart === null ? "Unavailable in this environment" : undefined}>
-          <Toggle label="Start at login" checked={!!autostart} onChange={(v) => void toggleAutostart(v)} />
+        <Row label={L.alwaysOnTop} hint={L.alwaysOnTopHint}>
+          <Toggle label={L.alwaysOnTop} checked={settings.pet.alwaysOnTop} onChange={(v) => pet({ alwaysOnTop: v })} />
         </Row>
-        <Row label="Click-through" hint="Clicks on the transparent area around the pet go to the app below">
-          <Toggle label="Click-through" checked={settings.pet.clickThrough} onChange={(v) => pet({ clickThrough: v })} />
+        <Row label={L.startAtLogin} hint={autostart === null ? L.unavailableEnv : undefined}>
+          <Toggle label={L.startAtLogin} checked={!!autostart} onChange={(v) => void toggleAutostart(v)} />
         </Row>
-        <Row label="Animations">
-          <Toggle label="Animations" checked={settings.pet.animations} onChange={(v) => pet({ animations: v })} />
+        <Row label={L.clickThrough} hint={L.clickThroughHint}>
+          <Toggle label={L.clickThrough} checked={settings.pet.clickThrough} onChange={(v) => pet({ clickThrough: v })} />
         </Row>
-        <Row label="Pet size" hint={`${Math.round(settings.pet.scale * 100)}%`}>
+        <Row label={L.animations}>
+          <Toggle label={L.animations} checked={settings.pet.animations} onChange={(v) => pet({ animations: v })} />
+        </Row>
+        <Row label={L.petSize} hint={`${Math.round(settings.pet.scale * 100)}%`}>
           <input
             type="range"
             min={0.6}
@@ -90,7 +109,7 @@ export function Settings() {
             onChange={(e) => pet({ scale: Number(e.target.value) })}
           />
         </Row>
-        <Row label="Pet opacity" hint={`${Math.round(settings.pet.opacity * 100)}%`}>
+        <Row label={L.petOpacity} hint={`${Math.round(settings.pet.opacity * 100)}%`}>
           <input
             type="range"
             min={0.3}
@@ -100,7 +119,7 @@ export function Settings() {
             onChange={(e) => pet({ opacity: Number(e.target.value) })}
           />
         </Row>
-        <Row label="Pet">
+        <Row label={L.pet}>
           <select
             className="btn"
             value={settings.pet.skin}
@@ -113,28 +132,28 @@ export function Settings() {
             ))}
           </select>
         </Row>
-        <Row label="Pet position" hint="Move the pet back to the bottom-right corner">
+        <Row label={L.petPosition} hint={L.petPositionHint}>
           <button className="btn" onClick={() => void backend.petResetPosition()}>
-            Reset position
+            {L.resetPosition}
           </button>
         </Row>
       </section>
 
       <section className="card px-4 py-1">
-        <Row label="Show usage in popover" hint="Plan limits and context window">
-          <Toggle label="Show usage" checked={settings.display.showUsage} onChange={(v) => display({ showUsage: v })} />
+        <Row label={L.showUsage} hint={L.showUsageHint}>
+          <Toggle label={L.showUsage} checked={settings.display.showUsage} onChange={(v) => display({ showUsage: v })} />
         </Row>
-        <Row label="Usage badge under the pet">
-          <Toggle label="Usage badge" checked={settings.display.showUsageBadge} onChange={(v) => display({ showUsageBadge: v })} />
+        <Row label={L.usageBadge}>
+          <Toggle label={L.usageBadge} checked={settings.display.showUsageBadge} onChange={(v) => display({ showUsageBadge: v })} />
         </Row>
       </section>
 
       <section className="card px-4 py-1">
-        <div className="label pt-3">AI providers</div>
+        <div className="label pt-3">{L.providers}</div>
         {PROVIDER_INFO.map((p) => {
           const on = settings.providers.enabled.includes(p.id);
           return (
-            <Row key={p.id} label={p.name} hint={p.implemented ? (settings.providers.primary === p.id ? "Primary - drives the pet" : undefined) : "Coming soon"}>
+            <Row key={p.id} label={p.name} hint={p.implemented ? (settings.providers.primary === p.id ? L.primary : undefined) : L.comingSoon}>
               <Toggle
                 label={p.name}
                 checked={on && p.implemented}
@@ -152,7 +171,7 @@ export function Settings() {
             </Row>
           );
         })}
-        <div className="pb-3 text-[12px] text-[color:var(--text-muted)]">Provider changes apply after restarting the app.</div>
+        <div className="pb-3 text-[12px] text-[color:var(--text-muted)]">{L.providersRestart}</div>
       </section>
     </div>
   );

@@ -2,9 +2,9 @@ import { useEffect, useState, type ReactNode } from "react";
 import { backend, on, type DashboardData } from "@/lib/backend";
 import { levelFromXp } from "@/pet/xp";
 import { resolvePetState } from "@/pet/PetStateMachine";
-import { PET_STATE_INFO } from "@/pet/PetStates";
 import { getSkin } from "@/pet/skins";
 import { EVT_PROGRESS } from "@/services/runtime";
+import { useT } from "@/i18n";
 import { selectStatus, useAI } from "@/stores/aiStore";
 import { useSettings } from "@/stores/settingsStore";
 import { formatCompact, formatDuration, formatInt, formatRelative } from "@/utils/format";
@@ -27,6 +27,7 @@ export function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const status = useAI(selectStatus);
   const skin = useSettings((s) => s.settings.pet.skin);
+  const t = useT();
 
   useEffect(() => {
     const load = () => void backend.statsDashboard(localDate(new Date()), 7).then(setData).catch(console.error);
@@ -56,7 +57,7 @@ export function Dashboard() {
           <Skin state={pet.state} modifiers={pet.modifiers} animate size={112} />
           <div className="min-w-0 flex-1 space-y-2">
             <div className="flex items-baseline justify-between">
-              <div className="text-[18px] font-bold">Level {lvl.level}</div>
+              <div className="text-[18px] font-bold">{t.dashboard.level(lvl.level)}</div>
               <div className="tnum text-[12px] text-[color:var(--text-muted)]">
                 {formatInt(lvl.intoLevel)} / {formatInt(lvl.needed)} XP
               </div>
@@ -65,12 +66,12 @@ export function Dashboard() {
               <div className="h-full rounded-full" style={{ width: `${lvl.progress * 100}%`, background: "var(--accent)" }} />
             </div>
             <div className="flex flex-wrap gap-2 text-[12px]">
-              <span className="chip">{PET_STATE_INFO[pet.state].label}</span>
-              <span className="chip">Total XP {formatInt(data?.progress.xp ?? 0)}</span>
+              <span className="chip">{t.petStates[pet.state].label}</span>
+              <span className="chip">{t.dashboard.totalXp(formatInt(data?.progress.xp ?? 0))}</span>
               <span className="chip">
-                {data && data.progress.streak > 0 ? `🔥 ${data.progress.streak}-day streak` : "No streak yet"}
+                {data && data.progress.streak > 0 ? t.dashboard.streak(data.progress.streak) : t.dashboard.noStreak}
               </span>
-              {data && data.progress.bestStreak > 1 && <span className="chip">Best {data.progress.bestStreak}</span>}
+              {data && data.progress.bestStreak > 1 && <span className="chip">{t.dashboard.best(data.progress.bestStreak)}</span>}
             </div>
           </div>
         </div>
@@ -80,8 +81,8 @@ export function Dashboard() {
             <div>
               <div className="font-bold">{status.providerName}</div>
               <div className="text-[12px] text-[color:var(--text-muted)]">
-                {status.model ?? "No session yet"}
-                {status.activeSessions > 1 && ` · ${status.activeSessions} sessions`}
+                {status.model ?? t.dashboard.noSession}
+                {status.activeSessions > 1 && t.dashboard.sessionsSuffix(status.activeSessions)}
                 {status.updatedAt && status.connected && ` · ${formatRelative(status.context.usedPercentage.updatedAt)}`}
               </div>
             </div>
@@ -94,24 +95,24 @@ export function Dashboard() {
       </div>
 
       <div>
-        <div className="label mb-2">Today</div>
+        <div className="label mb-2">{t.dashboard.today}</div>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Tile label="Coding time" value={formatDuration(today?.codingMs ?? 0)} sub={`${formatInt(today?.turns ?? 0)} turns`} />
-          <Tile label="Sessions" value={formatInt(today?.sessions ?? 0)} />
+          <Tile label={t.dashboard.codingTime} value={formatDuration(today?.codingMs ?? 0)} sub={t.dashboard.turns(formatInt(today?.turns ?? 0))} />
+          <Tile label={t.dashboard.sessions} value={formatInt(today?.sessions ?? 0)} />
           <Tile
-            label="Tokens"
+            label={t.dashboard.tokens}
             value={
               <>
                 {formatCompact(today?.inputTokens ?? 0)}
-                <span className="text-[13px] font-medium text-[color:var(--text-muted)]"> in</span>{" "}
+                <span className="text-[13px] font-medium text-[color:var(--text-muted)]">{t.dashboard.tokensIn}</span>{" "}
                 {formatCompact(today?.outputTokens ?? 0)}
-                <span className="text-[13px] font-medium text-[color:var(--text-muted)]"> out</span>
+                <span className="text-[13px] font-medium text-[color:var(--text-muted)]">{t.dashboard.tokensOut}</span>
               </>
             }
-            sub="≈ estimated from per-call usage"
+            sub={t.dashboard.tokensEstimated}
           />
           <Tile
-            label="Code"
+            label={t.dashboard.code}
             value={
               <>
                 <span style={{ color: "var(--ok)" }}>+{formatInt(today?.linesAdded ?? 0)}</span>{" "}
@@ -124,19 +125,20 @@ export function Dashboard() {
 
       <div className="card p-4">
         <div className="mb-2 flex items-baseline justify-between">
-          <div className="font-bold">Last 7 days</div>
+          <div className="font-bold">{t.dashboard.last7}</div>
           <div className="tnum text-[12px] text-[color:var(--text-muted)]">
-            All time: {formatDuration(data?.totals.codingMs ?? 0)} · {formatInt(data?.totals.sessions ?? 0)} sessions ·{" "}
-            +{formatInt(data?.totals.linesAdded ?? 0)} lines
+            {t.dashboard.allTime(
+              formatDuration(data?.totals.codingMs ?? 0),
+              formatInt(data?.totals.sessions ?? 0),
+              formatInt(data?.totals.linesAdded ?? 0),
+            )}
           </div>
         </div>
         {data && <WeekChart days={data.days} />}
       </div>
 
       <p className="text-[11px] leading-relaxed text-[color:var(--text-muted)]">
-        Plan limits (5-hour / weekly) are percentages of your Claude subscription reported by Claude Code; they
-        are not token counts and only appear for Pro/Max plans after the first response in a session. Context is
-        how full the current conversation's context window is. Values marked ≈ are estimated by AI Coding Pet.
+        {t.dashboard.footnote}
       </p>
     </div>
   );

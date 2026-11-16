@@ -1,18 +1,19 @@
 import { useState } from "react";
 import type { DailyRow } from "@/lib/backend";
+import { useT, type Dict } from "@/i18n";
 import { formatCompact, formatDuration } from "@/utils/format";
 
 type MetricKey = "time" | "lines" | "tokens";
 
-const METRICS: Record<MetricKey, { label: string; value: (d: DailyRow) => number; format: (n: number) => string }> = {
-  time: { label: "Coding time", value: (d) => d.codingMs, format: formatDuration },
-  lines: { label: "Lines added", value: (d) => d.linesAdded, format: (n) => formatCompact(n) },
-  tokens: { label: "Tokens (in + out)", value: (d) => d.inputTokens + d.outputTokens, format: (n) => formatCompact(n) },
+const METRICS: Record<MetricKey, { label: (t: Dict) => string; value: (d: DailyRow) => number; format: (n: number) => string }> = {
+  time: { label: (t) => t.chart.time, value: (d) => d.codingMs, format: formatDuration },
+  lines: { label: (t) => t.chart.lines, value: (d) => d.linesAdded, format: (n) => formatCompact(n) },
+  tokens: { label: (t) => t.chart.tokens, value: (d) => d.inputTokens + d.outputTokens, format: (n) => formatCompact(n) },
 };
 
-const weekday = (date: string) => {
+const weekday = (date: string, locale: string) => {
   const d = new Date(`${date}T00:00:00`);
-  return Number.isNaN(d.getTime()) ? date : d.toLocaleDateString(undefined, { weekday: "short" });
+  return Number.isNaN(d.getTime()) ? date : d.toLocaleDateString(locale, { weekday: "short" });
 };
 
 /** Single-series bar chart, hand-rolled SVG (no chart library needed). */
@@ -20,7 +21,9 @@ export function WeekChart({ days }: { days: DailyRow[] }) {
   const [metric, setMetric] = useState<MetricKey>("time");
   const [hover, setHover] = useState<number | null>(null);
   const [asTable, setAsTable] = useState(false);
+  const t = useT();
   const m = METRICS[metric];
+  const label = m.label(t);
   const values = days.map(m.value);
   const max = Math.max(1, ...values);
 
@@ -41,11 +44,11 @@ export function WeekChart({ days }: { days: DailyRow[] }) {
             style={k === metric ? { background: "var(--accent-soft)", color: "var(--text)", borderColor: "var(--accent)" } : undefined}
             onClick={() => setMetric(k)}
           >
-            {METRICS[k].label}
+            {METRICS[k].label(t)}
           </button>
         ))}
         <button className="chip ml-auto cursor-pointer" onClick={() => setAsTable((v) => !v)}>
-          {asTable ? "Chart" : "Table"}
+          {asTable ? t.chart.chart : t.chart.table}
         </button>
       </div>
 
@@ -53,15 +56,15 @@ export function WeekChart({ days }: { days: DailyRow[] }) {
         <table className="tnum w-full text-[12px]">
           <thead className="text-left text-[color:var(--text-muted)]">
             <tr>
-              <th className="py-1 font-medium">Day</th>
-              <th className="py-1 text-right font-medium">{m.label}</th>
+              <th className="py-1 font-medium">{t.chart.day}</th>
+              <th className="py-1 text-right font-medium">{label}</th>
             </tr>
           </thead>
           <tbody>
             {days.map((d, i) => (
               <tr key={d.date} className="border-t" style={{ borderColor: "var(--border)" }}>
                 <td className="py-1">
-                  {weekday(d.date)} <span className="text-[color:var(--text-muted)]">{d.date}</span>
+                  {weekday(d.date, t.locale)} <span className="text-[color:var(--text-muted)]">{d.date}</span>
                 </td>
                 <td className="py-1 text-right">{m.format(values[i] ?? 0)}</td>
               </tr>
@@ -70,11 +73,11 @@ export function WeekChart({ days }: { days: DailyRow[] }) {
         </table>
       ) : values.every((v) => v === 0) ? (
         <div className="flex h-[170px] items-center justify-center text-[13px] text-[color:var(--text-muted)]">
-          No activity recorded in the last {days.length} days yet.
+          {t.chart.empty(days.length)}
         </div>
       ) : (
         <div className="relative">
-          <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={`${m.label}, last ${days.length} days`}>
+          <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={t.chart.aria(label, days.length)}>
             <line x1={0} x2={W} y1={plotH + 8} y2={plotH + 8} stroke="var(--border)" strokeWidth={1} />
             {days.map((d, i) => {
               const v = values[i] ?? 0;
@@ -101,7 +104,7 @@ export function WeekChart({ days }: { days: DailyRow[] }) {
                     fill={isToday ? "var(--text)" : "var(--text-muted)"}
                     fontWeight={isToday ? 600 : 400}
                   >
-                    {isToday ? "Today" : weekday(d.date)}
+                    {isToday ? t.chart.today : weekday(d.date, t.locale)}
                   </text>
                 </g>
               );

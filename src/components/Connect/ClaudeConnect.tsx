@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { backend, type ClaudeDetection, type ConnectionTest, type SettingsPreview } from "@/lib/backend";
+import { useT } from "@/i18n";
 import { formatRelative } from "@/utils/format";
 
 type StepState = "ok" | "warn" | "fail" | "pending";
@@ -35,13 +36,14 @@ function PreviewCard({
   onCancel: () => void;
 }) {
   const [showJson, setShowJson] = useState(false);
+  const c = useT().connect;
   return (
     <div className="card space-y-3 p-4" style={{ borderColor: "var(--accent)" }}>
       <div className="font-bold">
-        Review changes to <span className="mono text-[12px] font-normal">{preview.settingsPath}</span>
+        {c.reviewChanges}<span className="mono text-[12px] font-normal">{preview.settingsPath}</span>
       </div>
       {preview.changes.length === 0 ? (
-        <div className="text-[13px] text-[color:var(--text-muted)]">Nothing to change - already up to date.</div>
+        <div className="text-[13px] text-[color:var(--text-muted)]">{c.nothingToChange}</div>
       ) : (
         <ul className="list-disc space-y-1 pl-5 text-[13px]">
           {preview.changes.map((c, i) => (
@@ -58,19 +60,18 @@ function PreviewCard({
         </div>
       ))}
       <div className="text-[12px] text-[color:var(--text-muted)]">
-        All your other settings are kept as-is. A backup of the current file is saved before writing, and
-        Disconnect removes only what AI Coding Pet added.
+        {c.keepNote}
       </div>
       <button className="chip cursor-pointer" onClick={() => setShowJson((v) => !v)}>
-        {showJson ? "Hide" : "Show"} resulting settings.json
+        {showJson ? c.hideJson : c.showJson}
       </button>
       {showJson && (
         <div className="grid gap-2 md:grid-cols-2">
           {(["before", "after"] as const).map((k) => (
             <div key={k}>
-              <div className="label mb-1">{k}</div>
+              <div className="label mb-1">{c[k]}</div>
               <pre className="mono max-h-72 overflow-auto rounded-lg p-2 text-[11px]" style={{ background: "var(--surface-2)" }}>
-                {preview[k] || "(file does not exist)"}
+                {preview[k] || c.noFile}
               </pre>
             </div>
           ))}
@@ -78,10 +79,10 @@ function PreviewCard({
       )}
       <div className="flex gap-2">
         <button className="btn btn-primary" disabled={busy || preview.changes.length === 0} onClick={onApprove}>
-          {preview.action === "connect" ? "Approve & connect" : "Approve & disconnect"}
+          {preview.action === "connect" ? c.approveConnect : c.approveDisconnect}
         </button>
         <button className="btn" onClick={onCancel} disabled={busy}>
-          Cancel
+          {c.cancel}
         </button>
       </div>
     </div>
@@ -94,6 +95,7 @@ export function ClaudeConnect() {
   const [test, setTest] = useState<ConnectionTest | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const c = useT().connect;
 
   const detect = useCallback(async () => {
     try {
@@ -130,7 +132,7 @@ export function ClaudeConnect() {
       const r = await backend.claudeApply(preview.action, preview.baseHash);
       setMessage({
         kind: "ok",
-        text: `${preview.action === "connect" ? "Connected" : "Disconnected"}.${r.backupPath ? ` Backup: ${r.backupPath}` : ""}`,
+        text: `${preview.action === "connect" ? c.connectedMsg : c.disconnectedMsg}${r.backupPath ? c.backup(r.backupPath) : ""}`,
       });
       setPreview(null);
       await detect();
@@ -149,45 +151,48 @@ export function ClaudeConnect() {
   return (
     <div className="max-w-3xl space-y-5">
       <div>
-        <h2 className="text-[18px] font-bold">Connect Claude Code</h2>
+        <h2 className="text-[18px] font-bold">{c.title}</h2>
         <p className="mt-1 text-[13px] text-[color:var(--text-muted)]">
-          AI Coding Pet reads Claude Code's official <b>statusLine</b> JSON and <b>hooks</b> events on this computer.
-          Nothing is sent anywhere else.
+          {c.intro1}
+          <b>statusLine</b>
+          {c.intro2}
+          <b>hooks</b>
+          {c.intro3}
         </p>
       </div>
 
       <ol className="card p-4 pb-1">
-        <Step n={1} title="Claude Code installed" state={!det ? "pending" : det.installed ? "ok" : "fail"}>
+        <Step n={1} title={c.step1} state={!det ? "pending" : det.installed ? "ok" : "fail"}>
           {det?.cliPath ? (
             <>
               <span className="mono">{det.cliPath}</span>
               {det.version && ` · ${det.version}`}
             </>
           ) : det?.installed ? (
-            "Config directory found (CLI not on PATH for GUI apps - that's fine)."
+            c.configFound
           ) : (
-            "Not found. Install Claude Code first: https://code.claude.com/docs"
+            c.notFound
           )}
         </Step>
-        <Step n={2} title="Claude config directory" state={!det ? "pending" : det.configDirExists ? "ok" : "warn"}>
+        <Step n={2} title={c.step2} state={!det ? "pending" : det.configDirExists ? "ok" : "warn"}>
           <span className="mono">{det?.configDir ?? "…"}</span>
-          {det && !det.configDirExists && " (will be created)"}
+          {det && !det.configDirExists && c.willCreate}
         </Step>
-        <Step n={3} title="Read settings.json" state={!det ? "pending" : det.settingsError ? "fail" : "ok"}>
-          {det?.settingsError ?? (det?.settingsExists ? <span className="mono">{det.settingsPath}</span> : "No settings file yet")}
+        <Step n={3} title={c.step3} state={!det ? "pending" : det.settingsError ? "fail" : "ok"}>
+          {det?.settingsError ?? (det?.settingsExists ? <span className="mono">{det.settingsPath}</span> : c.noSettings)}
         </Step>
-        <Step n={4} title="statusLine + hooks" state={!det ? "pending" : connected ? "ok" : partial ? "warn" : "pending"}>
+        <Step n={4} title={c.step4} state={!det ? "pending" : connected ? "ok" : partial ? "warn" : "pending"}>
           {connected
-            ? `Connected (statusLine + ${st!.connectedHooks.length} hooks).`
+            ? c.connected(st!.connectedHooks.length)
             : partial
-              ? `Partially connected. Missing: ${[!st!.statusLineConnected && "statusLine", ...st!.missingHooks].filter(Boolean).join(", ")}`
-              : "Not connected yet."}
-          {!!st?.foreignStatusLine && !connected && " You already have a statusLine; it will keep working (wrapped)."}
+              ? c.partial([!st!.statusLineConnected && "statusLine", ...st!.missingHooks].filter(Boolean).join(", "))
+              : c.notConnected}
+          {!!st?.foreignStatusLine && !connected && c.foreignStatusLine}
         </Step>
-        <Step n={5} title="Test connection" state={!test ? "pending" : test.collectorOk ? (test.lastClaudeEventAt ? "ok" : "warn") : "fail"}>
+        <Step n={5} title={c.step5} state={!test ? "pending" : test.collectorOk ? (test.lastClaudeEventAt ? "ok" : "warn") : "fail"}>
           {test
-            ? `${test.message}${test.lastClaudeEventAt ? ` Last event ${formatRelative(test.lastClaudeEventAt)}.` : ""}`
-            : "Run after connecting."}
+            ? `${test.message}${test.lastClaudeEventAt ? c.lastEvent(formatRelative(test.lastClaudeEventAt)) : ""}`
+            : c.runAfter}
         </Step>
       </ol>
 
@@ -205,38 +210,43 @@ export function ClaudeConnect() {
       ) : (
         <div className="flex flex-wrap gap-2">
           <button className="btn btn-primary" disabled={!det || !!det.settingsError} onClick={() => void startPreview("connect")}>
-            {connected ? "Repair / update connection" : "Connect Claude Code"}
+            {connected ? c.repair : c.connectBtn}
           </button>
           <button className="btn" onClick={() => void runTest()}>
-            Test connection
+            {c.testBtn}
           </button>
           <button className="btn" onClick={() => void detect()}>
-            Re-check
+            {c.recheck}
           </button>
           {(connected || partial) && (
             <button className="btn btn-danger ml-auto" onClick={() => void startPreview("disconnect")}>
-              Disconnect
+              {c.disconnect}
             </button>
           )}
         </div>
       )}
 
       <details className="text-[12px] text-[color:var(--text-muted)]">
-        <summary className="cursor-pointer">What exactly gets added?</summary>
+        <summary className="cursor-pointer">{c.whatAdded}</summary>
         <ul className="mt-2 list-disc space-y-1 pl-5">
           <li>
-            <span className="mono">statusLine</span>: runs this app's executable in collector mode, which forwards the JSON to
-            the app over 127.0.0.1 (token-protected) and prints a status line (or your original one).
+            <span className="mono">statusLine</span>
+            {c.addedStatusLine}
           </li>
           <li>
-            <span className="mono">hooks</span> (async, never block Claude): SessionStart, UserPromptSubmit, PreToolUse,
-            PostToolUse, PostToolUseFailure, PermissionRequest, Notification, Stop, StopFailure, SubagentStart,
-            SubagentStop, PreCompact, SessionEnd.
+            <span className="mono">hooks</span>
+            {c.addedHooks}
           </li>
-          <li>Each entry is tagged with <span className="mono">--source=ai-coding-pet</span> so Disconnect can find it.</li>
+          <li>
+            {c.addedTag1}
+            <span className="mono">--source=ai-coding-pet</span>
+            {c.addedTag2}
+          </li>
           {det && (
             <li>
-              Command shell on this machine: <span className="mono">{det.shell}</span>. Executable:{" "}
+              {c.shell}
+              <span className="mono">{det.shell}</span>
+              {c.exe}
               <span className="mono">{det.exePath}</span>
             </li>
           )}

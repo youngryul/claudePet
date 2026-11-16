@@ -1,3 +1,5 @@
+import { currentDict } from "@/i18n";
+
 export const localDate = (d: Date): string => {
   const p = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
@@ -7,7 +9,7 @@ export function formatDuration(ms: number): string {
   const totalMin = Math.floor(Math.max(0, ms) / 60_000);
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  return currentDict().format.duration(h, m);
 }
 
 export function formatCompact(n: number | null | undefined): string {
@@ -21,22 +23,24 @@ export function formatCompact(n: number | null | undefined): string {
 }
 
 export const formatInt = (n: number | null | undefined) =>
-  n === null || n === undefined || !Number.isFinite(n) ? "—" : Math.round(n).toLocaleString();
+  n === null || n === undefined || !Number.isFinite(n) ? "—" : Math.round(n).toLocaleString(currentDict().locale);
 
 export function formatRelative(ts: number | null, now = Date.now()): string {
-  if (ts === null) return "never";
+  const f = currentDict().format;
+  if (ts === null) return f.never;
   const s = Math.round((now - ts) / 1000);
-  if (s < 5) return "just now";
-  if (s < 60) return `${s}s ago`;
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  return `${Math.floor(s / 3600)}h ago`;
+  if (s < 5) return f.justNow;
+  if (s < 60) return f.secondsAgo(s);
+  if (s < 3600) return f.minutesAgo(Math.floor(s / 60));
+  return f.hoursAgo(Math.floor(s / 3600));
 }
 
 export function formatResetIn(ts: number | null, now = Date.now()): string | null {
   if (ts === null) return null;
   const min = Math.max(0, Math.round((ts - now) / 60_000));
-  if (min < 60) return `resets in ${min}m`;
+  const f = currentDict().format;
+  if (min < 60) return f.resetsInM(min);
   const h = Math.floor(min / 60);
-  if (h < 48) return `resets in ${h}h ${min % 60}m`;
-  return `resets in ${Math.floor(h / 24)}d`;
+  if (h < 48) return f.resetsInHM(h, min % 60);
+  return f.resetsInD(Math.floor(h / 24));
 }

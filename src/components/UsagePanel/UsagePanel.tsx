@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { levelFromXp } from "@/pet/xp";
 import type { AIStatus } from "@/providers/core/types";
+import { useT } from "@/i18n";
 import { selectStatus, useAI } from "@/stores/aiStore";
 import { usePet } from "@/stores/petStore";
 import { useSettings } from "@/stores/settingsStore";
@@ -27,19 +28,20 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 export function UsageSections({ status }: { status: AIStatus }) {
+  const u = useT().usage;
   return (
     <>
-      <Section title="Plan limits">
-        <UsageBar label="5-hour" metric={status.fiveHour.usedPercentage} hint={formatResetIn(status.fiveHour.resetsAt)} compact />
-        <UsageBar label="Weekly" metric={status.weekly.usedPercentage} hint={formatResetIn(status.weekly.resetsAt)} compact />
+      <Section title={u.planLimits}>
+        <UsageBar label={u.fiveHour} metric={status.fiveHour.usedPercentage} hint={formatResetIn(status.fiveHour.resetsAt)} compact />
+        <UsageBar label={u.weekly} metric={status.weekly.usedPercentage} hint={formatResetIn(status.weekly.resetsAt)} compact />
       </Section>
-      <Section title="Context window">
-        <UsageBar label="Context" metric={status.context.usedPercentage} compact unavailableText="—" />
+      <Section title={u.contextWindow}>
+        <UsageBar label={u.context} metric={status.context.usedPercentage} compact unavailableText="—" />
         <div className="grid grid-cols-3 gap-2">
-          <Stat label="In context" value={formatInt(status.context.inputTokens.value)} />
-          <Stat label="Last output" value={formatInt(status.context.outputTokens.value)} />
+          <Stat label={u.inContext} value={formatInt(status.context.inputTokens.value)} />
+          <Stat label={u.lastOutput} value={formatInt(status.context.outputTokens.value)} />
           <Stat
-            label="Lines"
+            label={u.lines}
             value={
               status.session.linesAdded.value === null ? (
                 "—"
@@ -63,6 +65,7 @@ export function UsagePanel({ onOpenDashboard }: { onOpenDashboard: () => void })
   const { progress, todayCodingMs } = usePet();
   const showUsage = useSettings((s) => s.settings.display.showUsage);
   const lvl = levelFromXp(progress.xp);
+  const u = useT().usage;
 
   return (
     <div className="space-y-3 p-3.5 text-[13px]">
@@ -70,7 +73,7 @@ export function UsagePanel({ onOpenDashboard }: { onOpenDashboard: () => void })
         <div className="min-w-0">
           <div className="truncate text-[13px] font-bold">{status.providerName}</div>
           <div className="truncate text-[11px] text-[color:var(--text-muted)]">
-            {status.model ?? "No model yet"}
+            {status.model ?? u.noModel}
             {mock && " · mock"}
           </div>
         </div>
@@ -79,9 +82,9 @@ export function UsagePanel({ onOpenDashboard }: { onOpenDashboard: () => void })
 
       {showUsage && <UsageSections status={status} />}
 
-      <Section title="Pet">
+      <Section title={u.pet}>
         <div className="flex items-baseline justify-between">
-          <span className="text-[13px] font-bold">Lv. {lvl.level}</span>
+          <span className="text-[13px] font-bold">{u.level(lvl.level)}</span>
           <span className="tnum text-[11px] text-[color:var(--text-muted)]">
             XP {formatInt(lvl.intoLevel)} / {formatInt(lvl.needed)}
           </span>
@@ -90,13 +93,13 @@ export function UsagePanel({ onOpenDashboard }: { onOpenDashboard: () => void })
           <div className="h-full rounded-full" style={{ width: `${lvl.progress * 100}%`, background: "var(--accent)" }} />
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <Stat label="Today" value={formatDuration(todayCodingMs)} />
-          <Stat label="Streak" value={progress.streak > 0 ? `🔥 ${progress.streak} day${progress.streak > 1 ? "s" : ""}` : "—"} />
+          <Stat label={u.today} value={formatDuration(todayCodingMs)} />
+          <Stat label={u.streak} value={progress.streak > 0 ? u.streakDays(progress.streak) : "—"} />
         </div>
       </Section>
 
       <button className="btn w-full justify-center" onClick={onOpenDashboard}>
-        Open Dashboard
+        {u.openDashboard}
       </button>
     </div>
   );

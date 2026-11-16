@@ -3,6 +3,7 @@ import { backend, broadcast, on, type AppInfo } from "@/lib/backend";
 import type { AIStatus } from "@/providers/core/types";
 import type { MockScenario } from "@/services/mockScenarios";
 import { EVT_MOCK, EVT_REQUEST_STATUS, EVT_STATUS } from "@/services/runtime";
+import { useDocumentLang, useT } from "@/i18n";
 import { useAI } from "@/stores/aiStore";
 import { ClaudeConnect } from "../Connect/ClaudeConnect";
 import { DevPanel } from "../DevMode/DevPanel";
@@ -11,12 +12,7 @@ import { Dashboard } from "./Dashboard";
 
 type Tab = "dashboard" | "connect" | "settings" | "dev";
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: "dashboard", label: "Dashboard" },
-  { id: "connect", label: "Claude Code" },
-  { id: "settings", label: "Settings" },
-  { id: "dev", label: "Developer" },
-];
+const TABS: { id: Tab }[] = [{ id: "dashboard" }, { id: "connect" }, { id: "settings" }, { id: "dev" }];
 
 const initialTab = (): Tab => {
   const h = window.location.hash.replace("#", "");
@@ -26,11 +22,13 @@ const initialTab = (): Tab => {
 export function DashboardApp() {
   const [tab, setTab] = useState<Tab>(initialTab);
   const [info, setInfo] = useState<AppInfo | null>(null);
+  const t = useT();
+  useDocumentLang();
 
   useEffect(() => {
     void backend.appInfo().then(setInfo);
     const subs = [
-      on<string>("dashboard://navigate", (t) => TABS.some((x) => x.id === t) && setTab(t as Tab)),
+      on<string>("dashboard://navigate", (id) => TABS.some((x) => x.id === id) && setTab(id as Tab)),
       on<AIStatus>(EVT_STATUS, (s) => useAI.getState().setLive(s)),
       on<MockScenario | null>(EVT_MOCK, (m) => useAI.getState().setMock(m)),
     ];
@@ -38,7 +36,7 @@ export function DashboardApp() {
     return () => subs.forEach((p) => void p.then((u) => u()));
   }, []);
 
-  const tabs = TABS.filter((t) => t.id !== "dev" || info?.devMode);
+  const tabs = TABS.filter((x) => x.id !== "dev" || info?.devMode);
 
   return (
     <div className="flex h-full flex-col">
@@ -46,17 +44,17 @@ export function DashboardApp() {
         <div className="mr-4 flex items-center gap-2 pb-2.5 font-bold">
           <span aria-hidden>🌱</span> AI Coding Pet
         </div>
-        {tabs.map((t) => (
+        {tabs.map((x) => (
           <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
+            key={x.id}
+            onClick={() => setTab(x.id)}
             className="-mb-px border-b-2 px-3 pb-2.5 text-[13px] font-semibold transition-colors"
             style={{
-              borderColor: tab === t.id ? "var(--accent)" : "transparent",
-              color: tab === t.id ? "var(--text)" : "var(--text-muted)",
+              borderColor: tab === x.id ? "var(--accent)" : "transparent",
+              color: tab === x.id ? "var(--text)" : "var(--text-muted)",
             }}
           >
-            {t.label}
+            {t.tabs[x.id]}
           </button>
         ))}
         <div className="ml-auto pb-2.5 text-[11px] text-[color:var(--text-muted)]">

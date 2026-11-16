@@ -203,6 +203,7 @@ export const backend = {
   petSetInteraction: (clickThrough: boolean, interactive: boolean, hit: HitRect | null) =>
     call<void>("pet_set_interaction", { clickThrough, interactive, hit }),
   petSetVisible: (visible: boolean) => call<void>("pet_set_visible", { visible }),
+  petSetAlwaysOnTop: (on: boolean) => call<void>("pet_set_always_on_top", { on }),
   petResetPosition: () => call<void>("pet_reset_position"),
   openDashboard: (tab?: string) => call<void>("open_dashboard", { tab: tab ?? null }),
   traySetStatus: (label: string) => call<void>("tray_set_status", { label }),
