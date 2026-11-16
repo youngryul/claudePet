@@ -106,7 +106,7 @@ const Star = ({ x, y, r = 4, fill = "#ffd166", className }: { x: number; y: numb
   />
 );
 
-function Props({ state, sweat, question }: { state: PetState; sweat: boolean; question: boolean }) {
+export function Props({ state, sweat, question }: { state: PetState; sweat: boolean; question: boolean }) {
   return (
     <>
       {state === "thinking" && (

@@ -27,7 +27,7 @@ export interface AppSettings {
 
 export const DEFAULT_SETTINGS: AppSettings = {
   version: 1,
-  pet: { visible: true, alwaysOnTop: true, scale: 1, opacity: 1, animations: true, clickThrough: true, skin: "sprout" },
+  pet: { visible: true, alwaysOnTop: true, scale: 1, opacity: 1, animations: true, clickThrough: true, skin: "bluecat" },
   display: { showUsage: true, showUsageBadge: false },
   providers: { enabled: ["claude"], primary: "claude" },
 };

@@ -5,11 +5,13 @@ import { getSkin } from "@/pet/skins";
 import { allScenarios, type MockScenario } from "@/services/mockScenarios";
 import { EVT_MOCK } from "@/services/runtime";
 import { useAI } from "@/stores/aiStore";
+import { useSettings } from "@/stores/settingsStore";
 
 /** Mock any AI state to test the pet without running Claude Code. */
 export function DevPanel() {
   const scenarios = useMemo(() => allScenarios(), []);
   const [active, setActive] = useState<string | null>(useAI.getState().mock?.id ?? null);
+  const skinId = useSettings((s) => s.settings.pet.skin);
 
   const apply = (s: MockScenario | null) => {
     setActive(s?.id ?? null);
@@ -38,7 +40,7 @@ export function DevPanel() {
             weekly: s.status.weekly.usedPercentage.value,
             context: s.status.context.usedPercentage.value,
           });
-          const Skin = getSkin("sprout").Renderer;
+          const Skin = getSkin(skinId).Renderer;
           return (
             <button
               key={s.id}
