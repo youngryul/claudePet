@@ -237,6 +237,7 @@ export const backend = {
   chatSend: (message: string) => call<void>("chat_send", { message }),
   chatCancel: () => call<void>("chat_cancel"),
   chatReset: () => call<void>("chat_reset"),
+  chatOpenLogin: () => call<void>("chat_open_login"),
 
   syncStatus: () => call<SyncStatus>("sync_status", undefined, browserSyncStatus),
   syncSetFolder: (path: string | null) =>

@@ -1,6 +1,34 @@
 import { useEffect, useRef, useState } from "react";
 import { useT } from "@/i18n";
+import { backend } from "@/lib/backend";
 import { useChat } from "@/stores/chatStore";
+
+/** Known failures get a plain explanation (and a fix button) instead of the raw text. */
+function ChatError({ raw }: { raw: string }) {
+  const t = useT().chat;
+  const [opened, setOpened] = useState(false);
+  const [openError, setOpenError] = useState<string | null>(null);
+  if (raw.includes("claude_not_found")) return <>{t.notFound}</>;
+  if (!/not logged in|\/login/i.test(raw)) return <>{raw}</>;
+  return (
+    <div className="space-y-2">
+      <div>{t.notLoggedIn}</div>
+      <button
+        className="btn btn-primary w-full justify-center"
+        onClick={() =>
+          void backend
+            .chatOpenLogin()
+            .then(() => setOpened(true))
+            .catch((e) => setOpenError(String(e)))
+        }
+      >
+        {t.openLogin}
+      </button>
+      {opened && <div style={{ color: "var(--text-muted)" }}>{t.loginOpened}</div>}
+      {openError && <div>{openError}</div>}
+    </div>
+  );
+}
 
 export function ChatPanel({ onBack }: { onBack: () => void }) {
   const t = useT().chat;
@@ -52,7 +80,7 @@ export function ChatPanel({ onBack }: { onBack: () => void }) {
                     }
               }
             >
-              {m.text}
+              {m.error ? <ChatError raw={m.text} /> : m.text}
             </div>
           </div>
         ))}

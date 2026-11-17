@@ -241,6 +241,7 @@ pub fn run() {
             chat::chat_send,
             chat::chat_cancel,
             chat::chat_reset,
+            chat::chat_open_login,
             sync::sync_status,
             sync::sync_set_folder,
         ])

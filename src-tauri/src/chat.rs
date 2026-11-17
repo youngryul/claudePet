@@ -19,6 +19,8 @@ use tauri::{AppHandle, Emitter};
 pub const CHAT_ENV: &str = "AI_PET_CHAT";
 pub const EVENT_NAME: &str = "chat://event";
 const MAX_MESSAGE_CHARS: usize = 8_000;
+/// Error code the UI turns into a localized "install Claude Code" message.
+const NOT_FOUND: &str = "claude_not_found";
 
 const PERSONA: &str = "You are a small desktop pet that lives in the corner of the user's screen \
 and keeps them company while they code. Be warm, playful and concise: answer in a few short \
@@ -110,7 +112,7 @@ pub fn chat_send(
     if state.child.lock().unwrap().is_some() {
         return Err("busy".into());
     }
-    let cli = crate::claude::find_claude_cli().ok_or("Claude Code CLI not found")?;
+    let cli = crate::claude::find_claude_runnable().ok_or(NOT_FOUND)?;
 
     let mut cmd = command_for(&cli);
     cmd.args([
@@ -194,6 +196,48 @@ pub fn chat_cancel(app: AppHandle, state: tauri::State<'_, Arc<ChatState>>) {
         let _ = child.lock().unwrap().kill();
         let _ = app.emit(EVENT_NAME, ChatEvent::Done { text: None });
     }
+}
+
+/// Opens a terminal window running `claude auth login`. The Claude desktop app keeps
+/// its login to itself, so someone who only uses the desktop app has to sign in to
+/// Claude Code once before the pet can talk. The user completes sign-in in the browser
+/// that opens; nothing here touches credentials.
+#[tauri::command]
+pub fn chat_open_login() -> Result<(), String> {
+    let cli = crate::claude::find_claude_runnable().ok_or(NOT_FOUND)?;
+    #[cfg(windows)]
+    let mut cmd = {
+        use std::os::windows::process::CommandExt;
+        // `start` gives the CLI its own visible console; the cmd wrapper stays hidden.
+        let mut c = Command::new("cmd");
+        c.args(["/C", "start", "Claude Code login"])
+            .arg(&cli)
+            .args(["auth", "login"])
+            .creation_flags(0x0800_0000);
+        c
+    };
+    #[cfg(target_os = "macos")]
+    let mut cmd = {
+        let script = format!(
+            "tell application \"Terminal\" to do script \"'{}' auth login\"\ntell application \"Terminal\" to activate",
+            cli.display().to_string().replace('\'', "'\\''").replace('"', "\\\"")
+        );
+        let mut c = Command::new("osascript");
+        c.arg("-e").arg(script);
+        c
+    };
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let mut cmd = {
+        let mut c = Command::new("x-terminal-emulator");
+        c.arg("-e").arg(&cli).args(["auth", "login"]);
+        c
+    };
+    cmd.stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("could not open a terminal: {e}"))
 }
 
 /// Forgets the conversation so the next message starts fresh.

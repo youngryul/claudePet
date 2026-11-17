@@ -63,6 +63,72 @@ pub fn find_claude_cli() -> Option<PathBuf> {
         .find(|p| p.is_file())
 }
 
+/// A Claude Code binary to run: the installed CLI, else one bundled with the Claude
+/// desktop app or an IDE extension. People who use Claude Code only through those
+/// apps have no `claude` on PATH, but the bundled binary works the same way and
+/// shares the login.
+pub fn find_claude_runnable() -> Option<PathBuf> {
+    find_claude_cli().or_else(|| newest(bundled_candidates()))
+}
+
+fn children(dir: &Path) -> Vec<PathBuf> {
+    std::fs::read_dir(dir)
+        .map(|rd| rd.flatten().map(|e| e.path()).collect())
+        .unwrap_or_default()
+}
+
+/// Where bundled binaries live (version folders vary, so the levels are walked):
+/// - Claude desktop: `<data>/claude-code/<version>/[<build>/]claude[.exe]`, with the
+///   data dir under `%LOCALAPPDATA%\Claude-Data\<package>` (Store install),
+///   `%APPDATA%\Claude` or `~/Library/Application Support/Claude`.
+/// - VS Code family: `<ext dir>/anthropic.claude-code-<ver>-<platform>/resources/native-binary/`.
+fn bundled_candidates() -> Vec<PathBuf> {
+    let exe = if cfg!(windows) { "claude.exe" } else { "claude" };
+    let mut data_dirs: Vec<PathBuf> = vec![];
+    if let Some(local) = std::env::var_os("LOCALAPPDATA") {
+        data_dirs.extend(children(&PathBuf::from(local).join("Claude-Data")));
+    }
+    if let Some(roaming) = std::env::var_os("APPDATA") {
+        data_dirs.push(PathBuf::from(roaming).join("Claude"));
+    }
+    let home = dirs::home_dir();
+    if let Some(home) = &home {
+        data_dirs.push(home.join("Library/Application Support/Claude"));
+        data_dirs.push(home.join(".config/Claude"));
+    }
+
+    let mut out = vec![];
+    for data in data_dirs {
+        for version in children(&data.join("claude-code")) {
+            out.push(version.join(exe));
+            out.extend(children(&version).into_iter().map(|build| build.join(exe)));
+        }
+    }
+    if let Some(home) = &home {
+        for ext_root in [".vscode", ".vscode-insiders", ".cursor", ".windsurf"] {
+            for ext in children(&home.join(ext_root).join("extensions")) {
+                let is_claude = ext
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .is_some_and(|n| n.starts_with("anthropic.claude-code-"));
+                if is_claude {
+                    out.push(ext.join("resources").join("native-binary").join(exe));
+                }
+            }
+        }
+    }
+    out.retain(|p| p.is_file());
+    out
+}
+
+/// The most recently updated binary is the newest version in practice; old versions
+/// linger after app and extension updates.
+fn newest(paths: Vec<PathBuf>) -> Option<PathBuf> {
+    paths
+        .into_iter()
+        .max_by_key(|p| std::fs::metadata(p).and_then(|m| m.modified()).ok())
+}
+
 fn no_window(cmd: &mut Command) -> &mut Command {
     #[cfg(windows)]
     {

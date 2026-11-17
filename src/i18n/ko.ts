@@ -123,6 +123,12 @@ export const ko: Dict = {
     send: "보내기",
     stop: "멈추기",
     thinking: "생각 중…",
+    notFound:
+      "이 컴퓨터에서 Claude Code를 찾지 못했어요. Claude Code CLI나 Claude 데스크톱 앱, VS Code 확장 중 하나를 설치한 뒤 다시 시도하세요.",
+    notLoggedIn:
+      "아직 제가 쓸 Claude Code 로그인이 없어요. Claude 데스크톱 앱의 로그인은 앱 안에서만 쓰여서, 열리는 터미널에서 한 번만 로그인해 주세요 (브라우저에서 승인하면 돼요).",
+    openLogin: "Claude Code 로그인",
+    loginOpened: "브라우저에서 로그인을 마친 뒤 메시지를 다시 보내 주세요.",
   },
 
   usage: {

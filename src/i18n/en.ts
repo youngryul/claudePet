@@ -124,6 +124,12 @@ export const en = {
     send: "Send",
     stop: "Stop",
     thinking: "Thinking…",
+    notFound:
+      "I couldn't find Claude Code on this computer. Install the Claude Code CLI, or the Claude desktop app or the VS Code extension, and try again.",
+    notLoggedIn:
+      "Claude Code isn't signed in for me yet. The Claude desktop app keeps its login to itself, so sign in once in the terminal that opens (a browser window will ask you to approve).",
+    openLogin: "Sign in to Claude Code",
+    loginOpened: "Finish signing in in the browser, then send your message again.",
   },
 
   usage: {
