@@ -152,6 +152,25 @@ export interface ConnectionTest {
   message: string;
 }
 
+export interface SyncStatus {
+  account: { id: string; email: string | null } | null;
+  folder: string | null;
+  /** Folder set, reachable, and a Claude account found: totals are account-wide. */
+  active: boolean;
+  devices: { deviceId: string; deviceName: string; updatedAt: number; thisDevice: boolean }[];
+  candidates: { label: string; path: string }[];
+  lastError: string | null;
+}
+
+const browserSyncStatus: SyncStatus = {
+  account: { id: "preview-account", email: "you@example.com" },
+  folder: null,
+  active: false,
+  devices: [],
+  candidates: [{ label: "OneDrive", path: "C:\\Users\\you\\OneDrive" }],
+  lastError: null,
+};
+
 const emptyDay = (date: string): DailyRow => ({
   date,
   codingMs: 0,
@@ -218,4 +237,13 @@ export const backend = {
   chatSend: (message: string) => call<void>("chat_send", { message }),
   chatCancel: () => call<void>("chat_cancel"),
   chatReset: () => call<void>("chat_reset"),
+
+  syncStatus: () => call<SyncStatus>("sync_status", undefined, browserSyncStatus),
+  syncSetFolder: (path: string | null) =>
+    call<SyncStatus>("sync_set_folder", { path }, {
+      ...browserSyncStatus,
+      folder: path,
+      active: !!path,
+      devices: path ? [{ deviceId: "preview", deviceName: "This PC", updatedAt: Date.now(), thisDevice: true }] : [],
+    }),
 };

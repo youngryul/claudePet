@@ -58,6 +58,24 @@ export const ko: Dict = {
   updated: (rel) => `${rel} 업데이트`,
   unavailable: "정보 없음",
 
+  sync: {
+    title: "기기 간 레벨 동기화",
+    hint: "같은 Claude 계정으로 로그인한 모든 컴퓨터의 레벨, XP, 연속 기록을 합쳐서 보여 줘요.",
+    account: "Claude 계정:",
+    noAccount: "찾을 수 없어요. 먼저 이 컴퓨터에서 Claude Code에 로그인하세요.",
+    on: "동기화 중인 폴더",
+    unreachable: "동기화 폴더에 접근할 수 없어서 이 컴퓨터 기록만 보여 줘요",
+    turnOff: "끄기",
+    devices: (n) => `기기 (${n}대)`,
+    thisDevice: "이 컴퓨터",
+    pickFolder: (label) => `${label} 사용`,
+    noCandidates: "OneDrive, iCloud Drive, Dropbox, Google Drive 폴더를 찾지 못했어요. 아래에 동기화 폴더 경로를 입력하세요.",
+    customPlaceholder: "다른 동기화 폴더 (전체 경로)",
+    use: "사용",
+    privacy:
+      "각 컴퓨터가 이 폴더에 하루 단위 합계(시간, 턴, 줄 수, 토큰, XP)만 담은 작은 파일 하나를 써요. 프롬프트나 코드는 들어가지 않아요. 다른 컴퓨터에서도 같은 클라우드 폴더를 고르세요.",
+  },
+
   chat: {
     open: "펫과 대화하기",
     title: "대화",

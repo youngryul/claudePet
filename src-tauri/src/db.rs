@@ -61,10 +61,41 @@ CREATE TABLE IF NOT EXISTS pet_progress (
 INSERT OR IGNORE INTO pet_progress (id) VALUES (1);
 "#;
 
+/// `daily_usage.bonus_xp` (added in 0.1.3) is the part of `xp` that came from the daily
+/// streak bonus. It is kept apart so that, when several devices are merged, the bonus is
+/// counted once per day for the account instead of once per device.
+fn migrate(c: &Connection) -> rusqlite::Result<()> {
+    let has_bonus: bool = c
+        .prepare("SELECT 1 FROM pragma_table_info('daily_usage') WHERE name = 'bonus_xp'")?
+        .exists([])?;
+    if has_bonus {
+        return Ok(());
+    }
+    c.execute_batch("ALTER TABLE daily_usage ADD COLUMN bonus_xp INTEGER NOT NULL DEFAULT 0;")?;
+    // Older rows have the bonus folded into `xp`. Replay the streak rules over the active
+    // days to recover it; this matches what `apply_usage` granted at the time.
+    let dates: Vec<NaiveDate> = c
+        .prepare(&format!(
+            "SELECT DISTINCT date FROM daily_usage WHERE {ACTIVE_SQL} ORDER BY date"
+        ))?
+        .query_map([], |r| r.get::<_, String>(0))?
+        .filter_map(|d| d.ok().as_deref().and_then(parse_date))
+        .collect();
+    for day in replay_streak(&dates) {
+        c.execute(
+            "UPDATE daily_usage SET bonus_xp = MIN(xp, ?1)
+             WHERE rowid = (SELECT rowid FROM daily_usage WHERE date = ?2 ORDER BY xp DESC LIMIT 1)",
+            params![day.bonus, day.date.format("%Y-%m-%d").to_string()],
+        )?;
+    }
+    Ok(())
+}
+
 impl Db {
     pub fn open(path: &std::path::Path) -> rusqlite::Result<Self> {
         let conn = Connection::open(path)?;
         conn.execute_batch(SCHEMA)?;
+        migrate(&conn)?;
         Ok(Db(Mutex::new(conn)))
     }
 
@@ -72,6 +103,7 @@ impl Db {
     pub fn in_memory() -> Self {
         let conn = Connection::open_in_memory().unwrap();
         conn.execute_batch(SCHEMA).unwrap();
+        migrate(&conn).unwrap();
         Db(Mutex::new(conn))
     }
 
@@ -140,8 +172,8 @@ pub struct PetProgress {
     pub streak_bonus_xp: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[serde(rename_all = "camelCase", default)]
 pub struct DailyRow {
     pub date: String,
     pub coding_ms: i64,
@@ -178,8 +210,121 @@ pub struct UsageSample {
 pub const STREAK_BONUS_PER_DAY: i64 = 10;
 pub const STREAK_BONUS_CAP_DAYS: i64 = 7;
 
-fn parse_date(s: &str) -> Option<NaiveDate> {
+/// A day counts toward the streak when it had any of these (same rule as
+/// `UsageDeltaBatch::has_activity`).
+const ACTIVE_SQL: &str = "(coding_ms > 0 OR sessions > 0 OR turns > 0 OR lines_added > 0)";
+
+pub fn parse_date(s: &str) -> Option<NaiveDate> {
     NaiveDate::parse_from_str(s, "%Y-%m-%d").ok()
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct StreakDay {
+    pub date: NaiveDate,
+    /// Streak length ending on this day.
+    pub streak: i64,
+    /// Bonus XP the first activity of this day earns.
+    pub bonus: i64,
+}
+
+/// Walks sorted, de-duplicated active dates and applies the streak rules of `next_streak`.
+pub fn replay_streak(dates: &[NaiveDate]) -> Vec<StreakDay> {
+    let mut out: Vec<StreakDay> = Vec::with_capacity(dates.len());
+    for &date in dates {
+        let streak = match out.last() {
+            Some(prev) if prev.date.succ_opt() == Some(date) => prev.streak + 1,
+            _ => 1,
+        };
+        out.push(StreakDay {
+            date,
+            streak,
+            bonus: STREAK_BONUS_PER_DAY * streak.min(STREAK_BONUS_CAP_DAYS),
+        });
+    }
+    out
+}
+
+/// One device's usage for one day, as written to the sync folder. `row.xp` excludes the
+/// streak bonus, which is recomputed for the whole account.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncDay {
+    #[serde(flatten)]
+    pub row: DailyRow,
+    pub active: bool,
+}
+
+/// This device's days, summed over providers, oldest first.
+pub fn local_days(db: &Db) -> Result<Vec<SyncDay>, String> {
+    let c = db.0.lock().unwrap();
+    let mut stmt = c
+        .prepare(&format!(
+            "SELECT {SUMS}, COALESCE(SUM(bonus_xp),0), date,
+                MAX(CASE WHEN {ACTIVE_SQL} THEN 1 ELSE 0 END)
+             FROM daily_usage GROUP BY date ORDER BY date"
+        ))
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| {
+            let mut row = row_from(r, r.get(10)?)?;
+            row.xp -= r.get::<_, i64>(9)?;
+            Ok(SyncDay {
+                row,
+                active: r.get::<_, i64>(11)? == 1,
+            })
+        })
+        .map_err(|e| e.to_string())?;
+    rows.collect::<Result<_, _>>().map_err(|e| e.to_string())
+}
+
+/// Several devices' days combined into one account view.
+pub struct Merged {
+    /// Per date; `xp` includes the account's streak bonus for that date.
+    pub by_date: std::collections::BTreeMap<String, DailyRow>,
+    pub progress: PetProgress,
+}
+
+pub fn merge_days(days: impl IntoIterator<Item = SyncDay>) -> Merged {
+    use std::collections::{BTreeMap, BTreeSet};
+    let mut by_date: BTreeMap<String, DailyRow> = BTreeMap::new();
+    let mut active: BTreeSet<NaiveDate> = BTreeSet::new();
+    for d in days {
+        let Some(date) = parse_date(&d.row.date) else {
+            continue;
+        };
+        if d.active {
+            active.insert(date);
+        }
+        let e = by_date.entry(d.row.date.clone()).or_insert_with(|| DailyRow {
+            date: d.row.date.clone(),
+            ..Default::default()
+        });
+        e.coding_ms += d.row.coding_ms.max(0);
+        e.sessions += d.row.sessions.max(0);
+        e.turns += d.row.turns.max(0);
+        e.input_tokens += d.row.input_tokens.max(0);
+        e.output_tokens += d.row.output_tokens.max(0);
+        e.lines_added += d.row.lines_added.max(0);
+        e.lines_removed += d.row.lines_removed.max(0);
+        e.cost_usd += d.row.cost_usd.max(0.0);
+        e.xp += d.row.xp.max(0);
+    }
+    let dates: Vec<NaiveDate> = active.into_iter().collect();
+    let streaks = replay_streak(&dates);
+    for s in &streaks {
+        if let Some(row) = by_date.get_mut(&s.date.format("%Y-%m-%d").to_string()) {
+            row.xp += s.bonus;
+        }
+    }
+    let last = streaks.last();
+    let progress = PetProgress {
+        xp: by_date.values().map(|r| r.xp).sum(),
+        streak: last.map(|s| s.streak).unwrap_or(0),
+        best_streak: streaks.iter().map(|s| s.streak).max().unwrap_or(0),
+        last_active_date: last.map(|s| s.date.format("%Y-%m-%d").to_string()),
+        streak_bonus_xp: 0,
+    };
+    Merged { by_date, progress }
 }
 
 fn read_progress(c: &Connection) -> rusqlite::Result<PetProgress> {
@@ -227,8 +372,8 @@ pub fn apply_usage(db: &Db, batch: &UsageDeltaBatch) -> Result<PetProgress, Stri
 
     tx.execute(
         "INSERT INTO daily_usage (date, provider, coding_ms, sessions, turns, input_tokens,
-            output_tokens, lines_added, lines_removed, cost_usd, xp)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+            output_tokens, lines_added, lines_removed, cost_usd, xp, bonus_xp)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
          ON CONFLICT(date, provider) DO UPDATE SET
             coding_ms = coding_ms + excluded.coding_ms,
             sessions = sessions + excluded.sessions,
@@ -238,7 +383,8 @@ pub fn apply_usage(db: &Db, batch: &UsageDeltaBatch) -> Result<PetProgress, Stri
             lines_added = lines_added + excluded.lines_added,
             lines_removed = lines_removed + excluded.lines_removed,
             cost_usd = cost_usd + excluded.cost_usd,
-            xp = xp + excluded.xp",
+            xp = xp + excluded.xp,
+            bonus_xp = bonus_xp + excluded.bonus_xp",
         params![
             batch.date,
             batch.provider,
@@ -251,6 +397,7 @@ pub fn apply_usage(db: &Db, batch: &UsageDeltaBatch) -> Result<PetProgress, Stri
             batch.lines_removed.max(0),
             batch.cost_usd.max(0.0),
             xp_gain,
+            bonus,
         ],
     )
     .map_err(|e| e.to_string())?;
@@ -346,12 +493,56 @@ pub fn dashboard(db: &Db, today: &str, days: u32) -> Result<DashboardData, Strin
         })
         .map_err(|e| e.to_string())?;
     let mut progress = read_progress(&c).map_err(|e| e.to_string())?;
-    // A streak is broken if the last active day is before yesterday.
+    break_stale_streak(&mut progress, today_date);
+    Ok(DashboardData {
+        today: rows.last().cloned().unwrap_or_default(),
+        totals,
+        days: rows,
+        progress,
+    })
+}
+
+/// A streak is broken if the last active day is before yesterday.
+fn break_stale_streak(progress: &mut PetProgress, today: NaiveDate) {
     if let Some(last) = progress.last_active_date.as_deref().and_then(parse_date) {
-        if today_date.signed_duration_since(last).num_days() > 1 {
+        if today.signed_duration_since(last).num_days() > 1 {
             progress.streak = 0;
         }
     }
+}
+
+/// Same shape as `dashboard`, built from an account-wide merge instead of this device.
+pub fn dashboard_from_merged(merged: Merged, today: &str, days: u32) -> Result<DashboardData, String> {
+    let today_date = parse_date(today).ok_or("invalid date")?;
+    let rows: Vec<DailyRow> = (0..days.max(1))
+        .rev()
+        .map(|i| {
+            let d = (today_date - chrono::Duration::days(i as i64))
+                .format("%Y-%m-%d")
+                .to_string();
+            merged.by_date.get(&d).cloned().unwrap_or(DailyRow {
+                date: d,
+                ..Default::default()
+            })
+        })
+        .collect();
+    let mut totals = DailyRow {
+        date: "total".into(),
+        ..Default::default()
+    };
+    for r in merged.by_date.values() {
+        totals.coding_ms += r.coding_ms;
+        totals.sessions += r.sessions;
+        totals.turns += r.turns;
+        totals.input_tokens += r.input_tokens;
+        totals.output_tokens += r.output_tokens;
+        totals.lines_added += r.lines_added;
+        totals.lines_removed += r.lines_removed;
+        totals.cost_usd += r.cost_usd;
+        totals.xp += r.xp;
+    }
+    let mut progress = merged.progress;
+    break_stale_streak(&mut progress, today_date);
     Ok(DashboardData {
         today: rows.last().cloned().unwrap_or_default(),
         totals,
@@ -434,6 +625,67 @@ mod tests {
         assert_eq!(d.totals.coding_ms, 120_000);
         let d = dashboard(&db, "2026-01-10", 7).unwrap();
         assert_eq!(d.progress.streak, 0);
+    }
+
+    #[test]
+    fn local_days_split_out_the_streak_bonus() {
+        let db = Db::in_memory();
+        apply_usage(&db, &batch("2026-01-01", 5)).unwrap(); // +10 bonus
+        apply_usage(&db, &batch("2026-01-02", 5)).unwrap(); // +20 bonus
+        let days = local_days(&db).unwrap();
+        assert_eq!(days.len(), 2);
+        assert_eq!((days[0].row.xp, days[1].row.xp), (5, 5));
+        assert!(days.iter().all(|d| d.active));
+        // Merging one device alone gives back exactly the local progress.
+        let m = merge_days(days);
+        let local = dashboard(&db, "2026-01-02", 7).unwrap().progress;
+        assert_eq!((m.progress.xp, m.progress.streak), (local.xp, local.streak));
+    }
+
+    #[test]
+    fn merge_counts_the_bonus_once_and_joins_streaks_across_devices() {
+        let day = |date: &str, xp: i64| SyncDay {
+            row: DailyRow {
+                date: date.into(),
+                coding_ms: 1000,
+                xp,
+                ..Default::default()
+            },
+            active: true,
+        };
+        // Device A: Jan 1 and Jan 3. Device B: Jan 1 and Jan 2.
+        let m = merge_days(vec![
+            day("2026-01-01", 5),
+            day("2026-01-03", 5),
+            day("2026-01-01", 7),
+            day("2026-01-02", 7),
+        ]);
+        assert_eq!(m.by_date["2026-01-01"].coding_ms, 2000);
+        assert_eq!(m.by_date["2026-01-01"].xp, 12 + 10);
+        assert_eq!(m.by_date["2026-01-02"].xp, 7 + 20);
+        assert_eq!(m.by_date["2026-01-03"].xp, 5 + 30);
+        assert_eq!(m.progress.xp, 12 + 7 + 5 + 60);
+        assert_eq!((m.progress.streak, m.progress.best_streak), (3, 3));
+        let d = dashboard_from_merged(m, "2026-01-03", 3).unwrap();
+        assert_eq!(d.today.coding_ms, 1000);
+        assert_eq!(d.totals.coding_ms, 4000);
+    }
+
+    #[test]
+    fn migration_recovers_bonus_from_old_rows() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(SCHEMA).unwrap();
+        // Rows as 0.1.2 wrote them: bonus folded into xp (5 base + 10, 5 base + 20).
+        conn.execute_batch(
+            "INSERT INTO daily_usage (date, provider, coding_ms, xp) VALUES
+               ('2026-01-01', 'claude', 100, 15), ('2026-01-02', 'claude', 100, 25);",
+        )
+        .unwrap();
+        migrate(&conn).unwrap();
+        migrate(&conn).unwrap(); // idempotent
+        let db = Db(Mutex::new(conn));
+        let xp: Vec<i64> = local_days(&db).unwrap().iter().map(|d| d.row.xp).collect();
+        assert_eq!(xp, vec![5, 5]);
     }
 
     #[test]

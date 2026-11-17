@@ -19,6 +19,10 @@ export const EVT_STATUS = "ai://status";
 export const EVT_REQUEST_STATUS = "ai://request-status";
 export const EVT_MOCK = "dev://mock";
 export const EVT_PROGRESS = "pet://progress";
+/** The sync folder changed; account-wide totals must be reloaded. */
+export const EVT_SYNC_CHANGED = "sync://changed";
+/** Other devices write to the sync folder on their own schedule; poll for their XP. */
+const REFRESH_MS = 60_000;
 
 function trayLabel(s: AIStatus): string {
   if (!s.connected) return `○ ${s.providerName} Offline`;
@@ -41,6 +45,9 @@ export async function startRuntime(): Promise<() => void> {
     }
   };
   await refreshToday();
+  const refreshTimer = setInterval(() => void refreshToday(), REFRESH_MS);
+  cleanups.push(() => clearInterval(refreshTimer));
+  cleanups.push(await on(EVT_SYNC_CHANGED, () => void refreshToday()));
 
   let lastTray = "";
   for (const provider of active) {

@@ -3,7 +3,7 @@ import { backend, on, type DashboardData } from "@/lib/backend";
 import { levelFromXp } from "@/pet/xp";
 import { resolvePetState } from "@/pet/PetStateMachine";
 import { getSkin } from "@/pet/skins";
-import { EVT_PROGRESS } from "@/services/runtime";
+import { EVT_PROGRESS, EVT_SYNC_CHANGED } from "@/services/runtime";
 import { useT } from "@/i18n";
 import { selectStatus, useAI } from "@/stores/aiStore";
 import { useSettings } from "@/stores/settingsStore";
@@ -34,9 +34,11 @@ export function Dashboard() {
     load();
     const t = setInterval(load, 30_000);
     const p = on(EVT_PROGRESS, load);
+    const s = on(EVT_SYNC_CHANGED, load);
     return () => {
       clearInterval(t);
       void p.then((u) => u());
+      void s.then((u) => u());
     };
   }, []);
 

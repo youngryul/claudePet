@@ -59,6 +59,24 @@ export const en = {
   updated: (rel: string) => `updated ${rel}`,
   unavailable: "Unavailable",
 
+  sync: {
+    title: "Sync level across devices",
+    hint: "Add up level, XP and streaks from every computer signed in to the same Claude account.",
+    account: "Claude account:",
+    noAccount: "Not found - sign in to Claude Code on this computer first.",
+    on: "Syncing through",
+    unreachable: "Sync folder not reachable - showing this computer only",
+    turnOff: "Turn off",
+    devices: (n: number) => `Devices (${n})`,
+    thisDevice: "this computer",
+    pickFolder: (label: string) => `Use ${label}`,
+    noCandidates: "No OneDrive, iCloud Drive, Dropbox or Google Drive folder found. Enter a synced folder below.",
+    customPlaceholder: "Another synced folder (full path)",
+    use: "Use",
+    privacy:
+      "Each computer writes one small file of daily totals (time, turns, lines, tokens, XP) into this folder. No prompts or code. Pick the same cloud folder on your other computers.",
+  },
+
   chat: {
     open: "Talk to pet",
     title: "Chat",

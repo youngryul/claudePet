@@ -12,6 +12,7 @@ pub mod db;
 pub mod paths;
 pub mod platform;
 pub mod process;
+pub mod sync;
 pub mod tray;
 pub mod updater;
 pub mod windows;
@@ -79,17 +80,25 @@ fn settings_save(
 }
 
 #[tauri::command]
-fn stats_apply(db: tauri::State<'_, Db>, batch: UsageDeltaBatch) -> Result<PetProgress, String> {
-    db::apply_usage(&db, &batch)
+fn stats_apply(
+    db: tauri::State<'_, Db>,
+    sync_state: tauri::State<'_, sync::SyncState>,
+    batch: UsageDeltaBatch,
+) -> Result<PetProgress, String> {
+    let local = db::apply_usage(&db, &batch)?;
+    Ok(sync::after_apply(&db, &sync_state, local))
 }
 
 #[tauri::command]
 fn stats_dashboard(
     db: tauri::State<'_, Db>,
+    sync_state: tauri::State<'_, sync::SyncState>,
     today: String,
     days: u32,
 ) -> Result<DashboardData, String> {
-    db::dashboard(&db, &today, days.min(90))
+    let days = days.min(90);
+    sync::dashboard(&db, &sync_state, &today, days)
+        .unwrap_or_else(|| db::dashboard(&db, &today, days))
 }
 
 #[tauri::command]
@@ -161,6 +170,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(collector_state.clone())
         .manage(Arc::new(chat::ChatState::default()))
+        .manage(sync::SyncState::default())
         .manage(ClickThroughState::default())
         .manage(PositionState::default())
         .manage(process::ProcessProbe::default())
@@ -231,6 +241,8 @@ pub fn run() {
             chat::chat_send,
             chat::chat_cancel,
             chat::chat_reset,
+            sync::sync_status,
+            sync::sync_set_folder,
         ])
         .build(tauri::generate_context!())
         .expect("error while building AI Coding Pet")

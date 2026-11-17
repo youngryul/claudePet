@@ -5,6 +5,7 @@ import { PROVIDER_INFO } from "@/providers/registry";
 import { LANGUAGES, useT, type Lang } from "@/i18n";
 import { PET_SKINS } from "@/pet/skins";
 import { useSettings, type AppSettings } from "@/stores/settingsStore";
+import { SyncSettings } from "./SyncSettings";
 
 function Row({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
@@ -138,6 +139,8 @@ export function Settings() {
           </button>
         </Row>
       </section>
+
+      <SyncSettings />
 
       <section className="card px-4 py-1">
         <Row label={L.showUsage} hint={L.showUsageHint}>
