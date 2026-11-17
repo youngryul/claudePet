@@ -214,4 +214,8 @@ export const backend = {
   claudeApply: (action: "connect" | "disconnect", baseHash: string) =>
     call<ApplyResult>("claude_apply", { action, baseHash }),
   claudeTestConnection: () => call<ConnectionTest>("claude_test_connection"),
+
+  chatSend: (message: string) => call<void>("chat_send", { message }),
+  chatCancel: () => call<void>("chat_cancel"),
+  chatReset: () => call<void>("chat_reset"),
 };

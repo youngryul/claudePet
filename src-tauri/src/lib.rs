@@ -5,6 +5,7 @@
 //! click-through, autostart) and Claude settings patching. Provider normalisation,
 //! the pet state machine and XP rules live in TypeScript (`src/`).
 
+pub mod chat;
 pub mod claude;
 pub mod collector;
 pub mod db;
@@ -159,6 +160,7 @@ pub fn run() {
         ))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(collector_state.clone())
+        .manage(Arc::new(chat::ChatState::default()))
         .manage(ClickThroughState::default())
         .manage(PositionState::default())
         .manage(process::ProcessProbe::default())
@@ -226,6 +228,9 @@ pub fn run() {
             claude::claude_preview,
             claude::claude_apply,
             claude::claude_test_connection,
+            chat::chat_send,
+            chat::chat_cancel,
+            chat::chat_reset,
         ])
         .build(tauri::generate_context!())
         .expect("error while building AI Coding Pet")

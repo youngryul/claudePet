@@ -59,13 +59,13 @@ export function UsageSections({ status }: { status: AIStatus }) {
   );
 }
 
-export function UsagePanel({ onOpenDashboard }: { onOpenDashboard: () => void }) {
+export function UsagePanel({ onOpenDashboard, onOpenChat }: { onOpenDashboard: () => void; onOpenChat: () => void }) {
   const status = useAI(selectStatus);
   const mock = useAI((s) => s.mock);
   const { progress, todayCodingMs } = usePet();
   const showUsage = useSettings((s) => s.settings.display.showUsage);
   const lvl = levelFromXp(progress.xp);
-  const u = useT().usage;
+  const { usage: u, chat } = useT();
 
   return (
     <div className="space-y-3 p-3.5 text-[13px]">
@@ -98,9 +98,14 @@ export function UsagePanel({ onOpenDashboard }: { onOpenDashboard: () => void })
         </div>
       </Section>
 
-      <button className="btn w-full justify-center" onClick={onOpenDashboard}>
-        {u.openDashboard}
-      </button>
+      <div className="grid grid-cols-2 gap-2">
+        <button className="btn btn-primary justify-center" onClick={onOpenChat}>
+          💬 {chat.open}
+        </button>
+        <button className="btn justify-center" onClick={onOpenDashboard}>
+          {u.openDashboard}
+        </button>
+      </div>
     </div>
   );
 }

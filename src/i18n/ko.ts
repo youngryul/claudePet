@@ -58,6 +58,18 @@ export const ko: Dict = {
   updated: (rel) => `${rel} 업데이트`,
   unavailable: "정보 없음",
 
+  chat: {
+    open: "펫과 대화하기",
+    title: "대화",
+    back: "뒤로",
+    newChat: "새 대화",
+    empty: "말을 걸어 보세요! 내 Claude 로그인으로 Claude Code가 펫 대신 대답해요.",
+    placeholder: "펫에게 메시지 보내기…",
+    send: "보내기",
+    stop: "멈추기",
+    thinking: "생각 중…",
+  },
+
   usage: {
     planLimits: "요금제 한도",
     fiveHour: "5시간",

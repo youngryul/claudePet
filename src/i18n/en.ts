@@ -59,6 +59,18 @@ export const en = {
   updated: (rel: string) => `updated ${rel}`,
   unavailable: "Unavailable",
 
+  chat: {
+    open: "Talk to pet",
+    title: "Chat",
+    back: "Back",
+    newChat: "New chat",
+    empty: "Say hi! Claude Code answers through your pet, using your Claude login.",
+    placeholder: "Message your pet…",
+    send: "Send",
+    stop: "Stop",
+    thinking: "Thinking…",
+  },
+
   usage: {
     planLimits: "Plan limits",
     fiveHour: "5-hour",
