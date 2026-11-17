@@ -82,6 +82,15 @@ export interface ClaudeHookPayload {
   error_details?: string | null;
   // SessionEnd
   reason?: string | null;
+  /** Added by our hook CLI: token usage of the latest response, read from the transcript. */
+  transcript_usage?: {
+    message_id?: string | null;
+    model?: string | null;
+    input_tokens?: number | null;
+    output_tokens?: number | null;
+    cache_creation_input_tokens?: number | null;
+    cache_read_input_tokens?: number | null;
+  } | null;
 }
 
 /** Envelope emitted by the Rust collector (`collector://event`). */

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { backend, on } from "@/lib/backend";
+import { DEFAULT_SCHEDULE, type WorkSchedule } from "@/pet/workday";
 
 export interface AppSettings {
   version: 1;
@@ -25,6 +26,8 @@ export interface AppSettings {
     enabled: string[];
     primary: string;
   };
+  /** Work hours for the pet's countdown bubble. */
+  schedule: WorkSchedule;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -32,6 +35,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   pet: { visible: true, alwaysOnTop: true, scale: 1, opacity: 1, animations: true, clickThrough: true, skin: "bluecat" },
   display: { showUsage: true, showUsageBadge: false, language: "ko" },
   providers: { enabled: ["claude"], primary: "claude" },
+  schedule: DEFAULT_SCHEDULE,
 };
 
 /** Deep-merge stored settings over defaults so new fields get sane values. */
@@ -42,6 +46,7 @@ export function mergeSettings(stored: unknown): AppSettings {
     pet: { ...DEFAULT_SETTINGS.pet, ...(s.pet ?? {}) },
     display: { ...DEFAULT_SETTINGS.display, ...(s.display ?? {}) },
     providers: { ...DEFAULT_SETTINGS.providers, ...(s.providers ?? {}) },
+    schedule: { ...DEFAULT_SETTINGS.schedule, ...(s.schedule ?? {}) },
   };
 }
 

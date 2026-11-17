@@ -59,6 +59,43 @@ export const en = {
   updated: (rel: string) => `updated ${rel}`,
   unavailable: "Unavailable",
 
+  schedule: {
+    title: "Work hours bubble",
+    hint: "The pet shows how long until lunch and the end of the day in a speech bubble.",
+    enable: "Show the bubble",
+    workStart: "Start work",
+    lunch: "Lunch",
+    workEnd: "End work",
+    workdays: "Workdays",
+    dayNames: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+    cheers: "Random cheer-up messages",
+    invalid: "Times must go in order: start < lunch start ≤ lunch end < end.",
+  },
+
+  bubble: {
+    beforeWork: (d: string) => `${d} until work ☕`,
+    morning: (d: string) => `${d} until lunch 🍚`,
+    lunch: (d: string) => `Lunch break: ${d} left 😋`,
+    afternoon: (d: string) => `${d} until you clock out 🏃`,
+    done: "Done for today! Great work 🎉",
+    soonLunch: "Lunch is almost here! 🍱",
+    soonLeave: "Almost time to go home! 🏡",
+    cheers: [
+      "You're doing great! 💪",
+      "Drink some water 💧",
+      "Stretch for a sec? 🙆",
+      "That bug doesn't stand a chance 🐛",
+      "One step at a time 🐾",
+      "I believe in you! ✨",
+      "Take a deep breath 🌿",
+      "Nice focus today 👀",
+      "Rest your eyes for a moment 👓",
+      "Small commits, big wins 🌱",
+      "You've got this! 🔥",
+      "I'm cheering for you 📣",
+    ],
+  },
+
   sync: {
     title: "Sync level across devices",
     hint: "Add up level, XP and streaks from every computer signed in to the same Claude account.",
@@ -91,6 +128,7 @@ export const en = {
 
   usage: {
     planLimits: "Plan limits",
+    limitsTerminalOnly: "Plan limits come only from Claude Code in a terminal (the desktop app and IDEs don't send them).",
     fiveHour: "5-hour",
     weekly: "Weekly",
     contextWindow: "Context window",

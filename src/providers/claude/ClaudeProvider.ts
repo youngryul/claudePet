@@ -14,7 +14,7 @@ import type {
 import { decay, isOffline, mostSalient, newSession, reduceHook, reduceStatusLine, type SessionActivity } from "./ClaudeActivity";
 import { ClaudeCollector } from "./ClaudeCollector";
 import type { CollectorEvent } from "./ClaudeTypes";
-import { parseHook, parseStatusLine, type ParsedStatusLine } from "./claudeParse";
+import { parseHook, parseStatusLine, type HookUsage, type ParsedStatusLine } from "./claudeParse";
 
 const TICK_MS = 1_000;
 const PROCESS_POLL_MS = 5_000;
@@ -25,6 +25,15 @@ interface StatusEntry {
   parsed: ParsedStatusLine;
   at: number;
 }
+
+interface HookUsageEntry {
+  usage: HookUsage;
+  at: number;
+}
+
+/** Without a statusLine the window size is unknown: assume the standard 200K, or 1M once
+ *  the context has grown past 200K (only the 1M window allows that). */
+const guessWindow = (tokens: number) => (tokens > 200_000 ? 1_000_000 : 200_000);
 
 interface RateEntry {
   pct: number;
@@ -46,6 +55,8 @@ export class ClaudeProvider implements AIProvider {
 
   private sessions = new Map<string, SessionActivity>();
   private statusLines = new Map<string, StatusEntry>();
+  /** Token usage from hooks; the only source in the desktop app and IDE extensions. */
+  private hookUsage = new Map<string, HookUsageEntry>();
   private fiveHour: RateEntry | null = null;
   private weekly: RateEntry | null = null;
   private processRunning: boolean | null = null;
@@ -149,6 +160,26 @@ export class ClaudeProvider implements AIProvider {
     if (!h) return;
     const id = h.sessionId ?? UNKNOWN_SESSION;
     this.sessions.set(id, reduceHook(this.session(id, now), h, now));
+    if (h.usage) {
+      this.hookUsage.set(id, { usage: h.usage, at: now });
+      // Sessions with a statusLine already report the same call; counting both would
+      // double the daily token totals.
+      if (!replay && h.sessionId && !this.statusLines.has(id)) {
+        this.usageEmitter.emit({
+          provider: this.id,
+          sessionId: h.sessionId,
+          model: h.usage.model,
+          observedAt: now,
+          cumulative: { linesAdded: null, linesRemoved: null, costUsd: null, apiDurationMs: null },
+          lastCall: h.usage.lastCall,
+          contextTokens: h.usage.contextTokens,
+          fiveHourPct: null,
+          fiveHourResetsAt: null,
+          weeklyPct: null,
+          weeklyResetsAt: null,
+        });
+      }
+    }
 
     if (replay || !h.sessionId) return;
     const kind =
@@ -178,6 +209,7 @@ export class ClaudeProvider implements AIProvider {
       if (now - s.lastEventAt > SESSION_TTL_MS) {
         this.sessions.delete(id);
         this.statusLines.delete(id);
+        this.hookUsage.delete(id);
         continue;
       }
       const next = decay(s, now);
@@ -210,6 +242,28 @@ export class ClaudeProvider implements AIProvider {
     const at = entry?.at ?? now;
     const sl = <T,>(v: T | null | undefined): Metric<T> => metric(v, "claude_statusline", at);
 
+    // No statusLine context numbers (desktop app / IDE): fall back to hook token usage.
+    let hu = salient ? this.hookUsage.get(salient.sessionId) : undefined;
+    if (!hu) for (const e of this.hookUsage.values()) if (!hu || e.at > hu.at) hu = e;
+    const useHook = (p?.contextInputTokens ?? null) === null && hu !== undefined;
+    const fromHook = <T,>(v: T | null): Metric<T> => metric(v, "derived", hu?.at ?? now);
+    const ctxTokens = hu?.usage.contextTokens ?? 0;
+    const context = useHook
+      ? {
+          usedPercentage: fromHook(
+            clampPct((ctxTokens / (p?.contextWindowSize ?? guessWindow(ctxTokens))) * 100),
+          ),
+          inputTokens: fromHook(ctxTokens),
+          outputTokens: fromHook(hu?.usage.lastCall.outputTokens ?? null),
+          windowSize: p?.contextWindowSize ?? guessWindow(ctxTokens),
+        }
+      : {
+          usedPercentage: sl(clampPct(p?.contextPct)),
+          inputTokens: sl(p?.contextInputTokens),
+          outputTokens: sl(p?.contextOutputTokens),
+          windowSize: p?.contextWindowSize ?? null,
+        };
+
     return {
       provider: this.id,
       providerName: this.name,
@@ -221,17 +275,12 @@ export class ClaudeProvider implements AIProvider {
           : "derived"
         : (salient?.source ?? "derived"),
       activityDetail: offline ? null : (salient?.detail ?? null),
-      model: p?.model ?? null,
+      model: p?.model ?? hu?.usage.model ?? null,
       sessionId: salient?.sessionId ?? p?.sessionId ?? null,
       activeSessions: live.length,
       thinkingEnabled: p?.thinkingEnabled ?? null,
       effortLevel: p?.effortLevel ?? null,
-      context: {
-        usedPercentage: sl(clampPct(p?.contextPct)),
-        inputTokens: sl(p?.contextInputTokens),
-        outputTokens: sl(p?.contextOutputTokens),
-        windowSize: p?.contextWindowSize ?? null,
-      },
+      context,
       fiveHour: this.rateWindow(this.fiveHour, now),
       weekly: this.rateWindow(this.weekly, now),
       session: {

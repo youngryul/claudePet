@@ -88,6 +88,28 @@ export interface ParsedHook {
   error: string | null;
   source: string | null;
   model: string | null;
+  /** Latest response's tokens, for clients without a statusLine (desktop app, IDEs). */
+  usage: HookUsage | null;
+}
+
+export interface HookUsage {
+  model: string | null;
+  lastCall: NonNullable<UsageObservation["lastCall"]>;
+  /** Tokens now in the context window: all input kinds of the latest call. */
+  contextTokens: number;
+}
+
+function parseHookUsage(u: unknown): HookUsage | null {
+  if (!isObj(u)) return null;
+  const lastCall = {
+    inputTokens: num(u.input_tokens) ?? 0,
+    outputTokens: num(u.output_tokens) ?? 0,
+    cacheCreationTokens: num(u.cache_creation_input_tokens) ?? 0,
+    cacheReadTokens: num(u.cache_read_input_tokens) ?? 0,
+  };
+  const contextTokens = lastCall.inputTokens + lastCall.cacheCreationTokens + lastCall.cacheReadTokens;
+  if (contextTokens === 0 && lastCall.outputTokens === 0) return null;
+  return { model: str(u.model), lastCall, contextTokens };
 }
 
 export function parseHook(raw: unknown): ParsedHook | null {
@@ -105,5 +127,6 @@ export function parseHook(raw: unknown): ParsedHook | null {
     error: str(p.error),
     source: str(p.source),
     model: str(p.model),
+    usage: parseHookUsage(p.transcript_usage),
   };
 }

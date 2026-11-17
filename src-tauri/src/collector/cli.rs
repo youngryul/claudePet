@@ -53,9 +53,72 @@ fn read_stdin() -> Vec<u8> {
 fn run_hook(channel: &str) -> i32 {
     let input = read_stdin();
     if let Some(endpoint) = CollectorEndpoint::load() {
-        let _ = post_json(&endpoint, &format!("/v1/claude/{channel}"), &input);
+        let body = with_transcript_usage(&input).unwrap_or(input);
+        let _ = post_json(&endpoint, &format!("/v1/claude/{channel}"), &body);
     }
     0
+}
+
+/// Hook events after which the transcript holds a fresh API response.
+const USAGE_EVENTS: &[&str] = &["Stop", "PostToolUse", "PostToolUseFailure", "PreCompact"];
+/// Only the end of the transcript is read; the latest response is always there.
+const TRANSCRIPT_TAIL_BYTES: u64 = 512 * 1024;
+
+/// statusLine (and with it token counts) only runs in the terminal UI; the desktop
+/// app and IDE extensions fire hooks only. So for those hooks we read the token usage
+/// of the latest response from the session transcript and attach just those numbers
+/// as `transcript_usage`. The transcript text itself never leaves this process.
+fn with_transcript_usage(input: &[u8]) -> Option<Vec<u8>> {
+    let mut v: Value = serde_json::from_slice(input).ok()?;
+    let event = v.get("hook_event_name")?.as_str()?;
+    if !USAGE_EVENTS.contains(&event) {
+        return None;
+    }
+    let path = v.get("transcript_path")?.as_str()?;
+    let usage = last_usage(&read_tail(std::path::Path::new(path))?)?;
+    v.as_object_mut()?.insert("transcript_usage".into(), usage);
+    serde_json::to_vec(&v).ok()
+}
+
+fn read_tail(path: &std::path::Path) -> Option<String> {
+    use std::io::{Seek, SeekFrom};
+    let mut f = std::fs::File::open(path).ok()?;
+    let len = f.metadata().ok()?.len();
+    let start = len.saturating_sub(TRANSCRIPT_TAIL_BYTES);
+    f.seek(SeekFrom::Start(start)).ok()?;
+    let mut buf = Vec::new();
+    f.take(TRANSCRIPT_TAIL_BYTES).read_to_end(&mut buf).ok()?;
+    let text = String::from_utf8_lossy(&buf).into_owned();
+    // Drop the first, possibly cut, line when we did not start at the beginning.
+    Some(if start > 0 {
+        text.split_once('\n').map(|(_, rest)| rest.to_owned()).unwrap_or_default()
+    } else {
+        text
+    })
+}
+
+/// Token usage of the main conversation's latest assistant response, numbers only.
+pub fn last_usage(jsonl: &str) -> Option<Value> {
+    jsonl.lines().rev().find_map(|line| {
+        if !line.contains("\"usage\"") {
+            return None;
+        }
+        let v: Value = serde_json::from_str(line).ok()?;
+        if v.get("type")?.as_str()? != "assistant" || v.get("isSidechain") == Some(&Value::Bool(true)) {
+            return None;
+        }
+        let msg = v.get("message")?;
+        let u = msg.get("usage")?;
+        let n = |k: &str| u.get(k).and_then(Value::as_u64).unwrap_or(0);
+        Some(serde_json::json!({
+            "message_id": msg.get("id").and_then(Value::as_str),
+            "model": msg.get("model").and_then(Value::as_str),
+            "input_tokens": n("input_tokens"),
+            "output_tokens": n("output_tokens"),
+            "cache_creation_input_tokens": n("cache_creation_input_tokens"),
+            "cache_read_input_tokens": n("cache_read_input_tokens"),
+        }))
+    })
 }
 
 fn run_statusline() -> i32 {
@@ -233,6 +296,41 @@ mod tests {
         let nulls =
             br#"{"model":null,"context_window":{"used_percentage":null},"rate_limits":null}"#;
         assert_eq!(default_status_text(nulls), "🐾");
+    }
+
+    #[test]
+    fn last_usage_takes_latest_main_response_numbers_only() {
+        let jsonl = [
+            r#"{"type":"assistant","message":{"id":"m1","model":"claude-x","content":[{"type":"text","text":"secret"}],"usage":{"input_tokens":1,"output_tokens":2,"cache_read_input_tokens":3}}}"#,
+            r#"{"type":"assistant","message":{"id":"m2","model":"claude-x","usage":{"input_tokens":10,"output_tokens":20,"cache_creation_input_tokens":30,"cache_read_input_tokens":40}}}"#,
+            r#"{"type":"assistant","isSidechain":true,"message":{"id":"sub","usage":{"input_tokens":999}}}"#,
+            r#"{"type":"user","message":{"content":"hi"}}"#,
+        ]
+        .join("\n");
+        let u = last_usage(&jsonl).unwrap();
+        assert_eq!(u["message_id"], "m2");
+        assert_eq!(u["input_tokens"], 10);
+        assert_eq!(u["cache_read_input_tokens"], 40);
+        assert!(!u.to_string().contains("secret"));
+        assert!(last_usage("not json\n{}").is_none());
+    }
+
+    #[test]
+    fn usage_is_attached_only_for_matching_hooks() {
+        let dir = tempfile::tempdir().unwrap();
+        let t = dir.path().join("t.jsonl");
+        std::fs::write(
+            &t,
+            r#"{"type":"assistant","message":{"id":"m","usage":{"input_tokens":5,"output_tokens":6}}}"#,
+        )
+        .unwrap();
+        let hook = |event: &str| {
+            serde_json::json!({"hook_event_name": event, "transcript_path": t.to_str().unwrap()})
+                .to_string()
+        };
+        let out: Value = serde_json::from_slice(&with_transcript_usage(hook("Stop").as_bytes()).unwrap()).unwrap();
+        assert_eq!(out["transcript_usage"]["output_tokens"], 6);
+        assert!(with_transcript_usage(hook("PreToolUse").as_bytes()).is_none());
     }
 
     #[cfg(unix)]

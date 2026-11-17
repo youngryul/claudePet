@@ -58,6 +58,43 @@ export const ko: Dict = {
   updated: (rel) => `${rel} 업데이트`,
   unavailable: "정보 없음",
 
+  schedule: {
+    title: "근무 시간 말풍선",
+    hint: "펫이 말풍선으로 점심시간과 퇴근까지 남은 시간을 알려 줘요.",
+    enable: "말풍선 보이기",
+    workStart: "출근 시간",
+    lunch: "점심시간",
+    workEnd: "퇴근 시간",
+    workdays: "근무 요일",
+    dayNames: ["일", "월", "화", "수", "목", "금", "토"],
+    cheers: "랜덤 응원 메시지",
+    invalid: "시간 순서를 확인하세요: 출근 < 점심 시작 ≤ 점심 끝 < 퇴근",
+  },
+
+  bubble: {
+    beforeWork: (d) => `출근까지 ${d} ☕`,
+    morning: (d) => `점심까지 ${d} 🍚`,
+    lunch: (d) => `점심시간 ${d} 남았어요 😋`,
+    afternoon: (d) => `퇴근까지 ${d} 🏃`,
+    done: "오늘도 수고했어요! 🎉",
+    soonLunch: "곧 점심시간이에요! 🍱",
+    soonLeave: "곧 퇴근이에요! 조금만 힘내요 🏡",
+    cheers: [
+      "오늘도 잘하고 있어요! 💪",
+      "물 한 잔 마셔요 💧",
+      "잠깐 기지개 켜 볼까요? 🙆",
+      "그 버그, 곧 잡힐 거예요 🐛",
+      "한 걸음씩 가면 돼요 🐾",
+      "당신을 믿어요! ✨",
+      "숨 한번 크게 쉬어요 🌿",
+      "집중력 최고예요 👀",
+      "눈 잠깐 쉬어 주세요 👓",
+      "작은 커밋이 큰 성과를 만들어요 🌱",
+      "할 수 있어요! 🔥",
+      "제가 응원하고 있어요 📣",
+    ],
+  },
+
   sync: {
     title: "기기 간 레벨 동기화",
     hint: "같은 Claude 계정으로 로그인한 모든 컴퓨터의 레벨, XP, 연속 기록을 합쳐서 보여 줘요.",
@@ -90,6 +127,7 @@ export const ko: Dict = {
 
   usage: {
     planLimits: "요금제 한도",
+    limitsTerminalOnly: "요금제 한도는 터미널에서 Claude Code를 쓸 때만 받아와요 (데스크톱 앱·IDE는 보내 주지 않아요).",
     fiveHour: "5시간",
     weekly: "주간",
     contextWindow: "컨텍스트 창",

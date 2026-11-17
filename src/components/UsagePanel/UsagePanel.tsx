@@ -34,6 +34,9 @@ export function UsageSections({ status }: { status: AIStatus }) {
       <Section title={u.planLimits}>
         <UsageBar label={u.fiveHour} metric={status.fiveHour.usedPercentage} hint={formatResetIn(status.fiveHour.resetsAt)} compact />
         <UsageBar label={u.weekly} metric={status.weekly.usedPercentage} hint={formatResetIn(status.weekly.resetsAt)} compact />
+        {status.fiveHour.usedPercentage.value === null && status.weekly.usedPercentage.value === null && (
+          <div className="text-[11px] leading-snug text-[color:var(--text-muted)]">{u.limitsTerminalOnly}</div>
+        )}
       </Section>
       <Section title={u.contextWindow}>
         <UsageBar label={u.context} metric={status.context.usedPercentage} compact unavailableText="—" />

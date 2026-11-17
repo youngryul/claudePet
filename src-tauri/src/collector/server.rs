@@ -82,6 +82,8 @@ const HOOK_FIELDS: &[&str] = &[
     "trigger",
     "permission_mode",
     "duration_ms",
+    // Token counts only, extracted by our own hook CLI (see `collector::cli`).
+    "transcript_usage",
 ];
 const STATUSLINE_FIELDS: &[&str] = &[
     "session_id",

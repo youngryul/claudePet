@@ -435,3 +435,30 @@ input[type="range"] {
     animation: none !important;
   }
 }
+
+/* ---------- Pet speech bubble ---------- */
+.speech-bubble {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 4px 9px;
+  line-height: 1.3;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(20, 24, 36, 0.12);
+  width: max-content;
+  word-break: keep-all;
+  animation: pop-in 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+.speech-bubble::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 8px;
+  height: 8px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  transform: translateX(-50%) rotate(45deg);
+}

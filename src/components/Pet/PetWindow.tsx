@@ -12,6 +12,7 @@ import { listenChat, useChat, type ChatPhase } from "@/stores/chatStore";
 import type { AIActivityState } from "@/providers/core/types";
 import { ChatPanel } from "../Chat/ChatPanel";
 import { UsagePanel } from "../UsagePanel/UsagePanel";
+import { SpeechBubble } from "./SpeechBubble";
 
 type PopoverMode = "status" | "chat";
 
@@ -194,6 +195,14 @@ export function PetWindow() {
         className="absolute flex flex-col items-center justify-end"
         style={{ left: stageLeft, top: stageTop, width: base.width, height: base.height, paddingBottom: 6 * scale }}
       >
+        {!exp && (
+          <SpeechBubble
+            schedule={settings.schedule}
+            scale={scale}
+            // Just above the cat's ears (the art fills the lower ~80% of the skin box).
+            bottom={6 * scale + PET * scale * 0.86 + (settings.display.showUsageBadge ? 18 * scale : 0)}
+          />
+        )}
         <div
           ref={hitRef}
           className="flex cursor-grab flex-col items-center active:cursor-grabbing"

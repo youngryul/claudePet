@@ -5,6 +5,7 @@ import { PROVIDER_INFO } from "@/providers/registry";
 import { LANGUAGES, useT, type Lang } from "@/i18n";
 import { PET_SKINS } from "@/pet/skins";
 import { useSettings, type AppSettings } from "@/stores/settingsStore";
+import { ScheduleSettings } from "./ScheduleSettings";
 import { SyncSettings } from "./SyncSettings";
 
 function Row({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
@@ -139,6 +140,8 @@ export function Settings() {
           </button>
         </Row>
       </section>
+
+      <ScheduleSettings />
 
       <SyncSettings />
 

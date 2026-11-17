@@ -1,5 +1,51 @@
 import { describe, expect, it } from "vitest";
-import { parseStatusLine } from "./claudeParse";
+import { ClaudeProvider } from "./ClaudeProvider";
+import { parseHook, parseStatusLine } from "./claudeParse";
+
+describe("hook token usage (no statusLine: desktop app / IDE)", () => {
+  const stop = {
+    hook_event_name: "Stop",
+    session_id: "s1",
+    transcript_usage: {
+      model: "claude-opus-5-5",
+      input_tokens: 10,
+      output_tokens: 500,
+      cache_creation_input_tokens: 2_000,
+      cache_read_input_tokens: 48_000,
+    },
+  };
+
+  it("parses the numbers our hook CLI attaches", () => {
+    const u = parseHook(stop)!.usage!;
+    expect(u.contextTokens).toBe(50_010);
+    expect(u.lastCall.outputTokens).toBe(500);
+    expect(parseHook({ hook_event_name: "Stop" })!.usage).toBeNull();
+  });
+
+  it("fills context tokens and emits usage when no statusLine arrives", async () => {
+    const p = new ClaudeProvider(() => 1_000);
+    const seen: unknown[] = [];
+    p.onUsage((o) => seen.push(o));
+    p.ingest({ provider: "claude", channel: "hook", receivedAt: 1_000, payload: stop }, { replay: false });
+    const s = await p.getStatus();
+    expect(s.context.inputTokens.value).toBe(50_010);
+    expect(s.context.outputTokens.value).toBe(500);
+    expect(Math.round(s.context.usedPercentage.value!)).toBe(25); // of an assumed 200K window
+    expect(s.model).toBe("claude-opus-5-5");
+    expect(seen).toHaveLength(1);
+  });
+
+  it("prefers the statusLine when there is one, and does not double-count", async () => {
+    const p = new ClaudeProvider(() => 1_000);
+    const seen: unknown[] = [];
+    p.onUsage((o) => seen.push(o));
+    const sl = { session_id: "s1", context_window: { total_input_tokens: 7, total_output_tokens: 8, used_percentage: 1 } };
+    p.ingest({ provider: "claude", channel: "statusline", receivedAt: 1_000, payload: sl }, { replay: false });
+    p.ingest({ provider: "claude", channel: "hook", receivedAt: 1_000, payload: stop }, { replay: false });
+    expect((await p.getStatus()).context.inputTokens.value).toBe(7);
+    expect(seen).toHaveLength(1); // only the statusLine observation
+  });
+});
 
 describe("parseStatusLine", () => {
   it("parses the documented payload", () => {
