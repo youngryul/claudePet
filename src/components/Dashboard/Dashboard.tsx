@@ -7,10 +7,9 @@ import { EVT_PROGRESS, EVT_SYNC_CHANGED } from "@/services/runtime";
 import { useT } from "@/i18n";
 import { selectStatus, useAI } from "@/stores/aiStore";
 import { useSettings } from "@/stores/settingsStore";
-import { formatDuration, formatInt, formatRelative } from "@/utils/format";
+import { formatDuration, formatInt } from "@/utils/format";
 import { localDate } from "@/utils/format";
 import { ActivityChip } from "../common/ActivityChip";
-import { UsageSections } from "../UsagePanel/UsagePanel";
 import { WeekChart } from "./WeekChart";
 
 function Tile({ label, value, sub }: { label: string; value: ReactNode; sub?: ReactNode }) {
@@ -85,13 +84,9 @@ export function Dashboard() {
               <div className="text-[12px] text-[color:var(--text-muted)]">
                 {status.model ?? t.dashboard.noSession}
                 {status.activeSessions > 1 && t.dashboard.sessionsSuffix(status.activeSessions)}
-                {status.updatedAt && status.connected && ` · ${formatRelative(status.context.usedPercentage.updatedAt)}`}
               </div>
             </div>
             <ActivityChip status={status} />
-          </div>
-          <div className="space-y-3 text-[13px]">
-            <UsageSections status={status} />
           </div>
         </div>
       </div>

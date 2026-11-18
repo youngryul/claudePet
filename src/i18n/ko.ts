@@ -116,12 +116,6 @@ export const ko: Dict = {
   },
 
   usage: {
-    planLimits: "요금제 한도",
-    limitsTerminalOnly: "요금제 한도는 터미널에서 Claude Code를 쓸 때만 받아와요 (데스크톱 앱·IDE는 보내 주지 않아요).",
-    fiveHour: "5시간",
-    weekly: "주간",
-    contextWindow: "컨텍스트 창",
-    context: "컨텍스트",
     lines: "줄 수",
     pet: "펫",
     noModel: "아직 모델 없음",
@@ -180,9 +174,6 @@ export const ko: Dict = {
     petPosition: "펫 위치",
     petPositionHint: "펫을 오른쪽 아래 구석으로 되돌려요",
     resetPosition: "위치 초기화",
-    showUsage: "팝업에 사용량 표시",
-    showUsageHint: "요금제 한도와 컨텍스트 창",
-    usageBadge: "펫 아래 사용량 배지",
     providers: "AI 제공자",
     primary: "기본 - 펫이 이 상태를 따라가요",
     comingSoon: "준비 중",

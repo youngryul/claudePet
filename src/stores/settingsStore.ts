@@ -14,10 +14,6 @@ export interface AppSettings {
     skin: string;
   };
   display: {
-    /** Show subscription/context usage in the popover. */
-    showUsage: boolean;
-    /** Tiny usage chip under the pet. */
-    showUsageBadge: boolean;
     /** UI language for the dashboard and pet popover. */
     language: "ko" | "en";
   };
@@ -33,7 +29,7 @@ export interface AppSettings {
 export const DEFAULT_SETTINGS: AppSettings = {
   version: 1,
   pet: { visible: true, alwaysOnTop: true, scale: 1, opacity: 1, animations: true, clickThrough: true, skin: "bluecat" },
-  display: { showUsage: true, showUsageBadge: false, language: "ko" },
+  display: { language: "ko" },
   providers: { enabled: ["claude"], primary: "claude" },
   schedule: DEFAULT_SCHEDULE,
 };

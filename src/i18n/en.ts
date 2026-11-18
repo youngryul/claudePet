@@ -117,12 +117,6 @@ export const en = {
   },
 
   usage: {
-    planLimits: "Plan limits",
-    limitsTerminalOnly: "Plan limits come only from Claude Code in a terminal (the desktop app and IDEs don't send them).",
-    fiveHour: "5-hour",
-    weekly: "Weekly",
-    contextWindow: "Context window",
-    context: "Context",
     lines: "Lines",
     pet: "Pet",
     noModel: "No model yet",
@@ -181,9 +175,6 @@ export const en = {
     petPosition: "Pet position",
     petPositionHint: "Move the pet back to the bottom-right corner",
     resetPosition: "Reset position",
-    showUsage: "Show usage in popover",
-    showUsageHint: "Plan limits and context window",
-    usageBadge: "Usage badge under the pet",
     providers: "AI providers",
     primary: "Primary - drives the pet",
     comingSoon: "Coming soon",

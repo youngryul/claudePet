@@ -28,7 +28,7 @@ export function PetWindow() {
 
   const { scale, opacity, animations, clickThrough, alwaysOnTop, visible } = settings.pet;
   const base = useMemo(() => ({ width: Math.round(BASE * scale), height: Math.round(BASE * scale) }), [scale]);
-  const pop = useMemo(() => ({ width: 264, height: settings.display.showUsage ? 492 : 262 }), [settings.display.showUsage]);
+  const pop = useMemo(() => ({ width: 264, height: 262 }), []);
 
   const resolution = useMemo(
     () =>
@@ -132,7 +132,6 @@ export function PetWindow() {
   const stageLeft = exp?.petLeft ?? 0;
   const stageTop = exp?.petTop ?? 0;
   const popLeft = exp ? Math.min(Math.max(stageLeft + base.width / 2 - pop.width / 2, 0), exp.width - pop.width) : 0;
-  const fiveHour = status.fiveHour.usedPercentage.value;
 
   return (
     <div className="relative h-full w-full">
@@ -159,7 +158,7 @@ export function PetWindow() {
             schedule={settings.schedule}
             scale={scale}
             // Just above the cat's ears (the art fills the lower ~80% of the skin box).
-            bottom={6 * scale + PET * scale * 0.86 + (settings.display.showUsageBadge ? 18 * scale : 0)}
+            bottom={6 * scale + PET * scale * 0.86}
           />
         )}
         <div
@@ -183,12 +182,6 @@ export function PetWindow() {
             size={Math.round(PET * scale)}
             detail={status.activity === "tool" ? status.activityDetail : null}
           />
-          {settings.display.showUsageBadge && (
-            <div className="chip tnum mt-0.5" style={{ fontSize: 10 * Math.max(scale, 0.9) }}>
-              5h {fiveHour === null ? "—" : `${Math.round(fiveHour)}%`}
-              {status.context.usedPercentage.value !== null && ` · ctx ${Math.round(status.context.usedPercentage.value)}%`}
-            </div>
-          )}
         </div>
       </div>
     </div>

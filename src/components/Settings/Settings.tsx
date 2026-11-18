@@ -146,15 +146,6 @@ export function Settings() {
       <SyncSettings />
 
       <section className="card px-4 py-1">
-        <Row label={L.showUsage} hint={L.showUsageHint}>
-          <Toggle label={L.showUsage} checked={settings.display.showUsage} onChange={(v) => display({ showUsage: v })} />
-        </Row>
-        <Row label={L.usageBadge}>
-          <Toggle label={L.usageBadge} checked={settings.display.showUsageBadge} onChange={(v) => display({ showUsageBadge: v })} />
-        </Row>
-      </section>
-
-      <section className="card px-4 py-1">
         <div className="label pt-3">{L.providers}</div>
         {PROVIDER_INFO.map((p) => {
           const on = settings.providers.enabled.includes(p.id);
