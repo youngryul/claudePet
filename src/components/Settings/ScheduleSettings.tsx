@@ -1,5 +1,5 @@
 import { useT } from "@/i18n";
-import { isValidSchedule, type WorkSchedule } from "@/pet/workday";
+import { hoursFor, isValidHours, isValidSchedule, type DayHours, type WorkSchedule } from "@/pet/workday";
 import { useSettings } from "@/stores/settingsStore";
 
 const timeInput = "rounded-[9px] px-2 py-1 text-[13px] tnum outline-none";
@@ -26,9 +26,30 @@ export function ScheduleSettings() {
   const set = (patch: Partial<WorkSchedule>) => void update((s) => ({ ...s, schedule: { ...s.schedule, ...patch } }));
   const toggleDay = (d: number) =>
     set({ workdays: schedule.workdays.includes(d) ? schedule.workdays.filter((x) => x !== d) : [...schedule.workdays, d].sort((a, b) => a - b) });
+  /** Edit one weekday's hours, starting from what that day shows now. */
+  const setDay = (d: number, patch: Partial<DayHours>) =>
+    void update((s) => ({
+      ...s,
+      schedule: { ...s.schedule, days: { ...s.schedule.days, [d]: { ...hoursFor(s.schedule, d), ...patch } } },
+    }));
+  /** Turning per-day on copies the shared hours into each day that has none yet. */
+  const setPerDay = (on: boolean) => {
+    if (!on) return set({ perDay: false });
+    const days = { ...schedule.days };
+    for (let d = 0; d < 7; d++) days[d] ??= hoursFor({ ...schedule, perDay: false }, d);
+    set({ perDay: true, days });
+  };
   const valid = isValidSchedule(schedule);
   const row = "flex items-center justify-between gap-4 border-t py-3";
   const border = { borderColor: "var(--border)" };
+
+  const lunchRange = (h: DayHours, onChange: (p: Partial<DayHours>) => void, prefix = "") => (
+    <div className="flex items-center gap-1.5">
+      <Time label={`${prefix}${L.lunch} 1`} value={h.lunchStart} onChange={(v) => onChange({ lunchStart: v })} />
+      <span className="text-[color:var(--text-muted)]">~</span>
+      <Time label={`${prefix}${L.lunch} 2`} value={h.lunchEnd} onChange={(v) => onChange({ lunchEnd: v })} />
+    </div>
+  );
 
   const toggle = (checked: boolean, onChange: (v: boolean) => void, label: string) => (
     <button
@@ -56,22 +77,6 @@ export function ScheduleSettings() {
       {schedule.enabled && (
         <>
           <div className={row} style={border}>
-            <div className="text-[13px] font-semibold">{L.workStart}</div>
-            <Time label={L.workStart} value={schedule.workStart} onChange={(v) => set({ workStart: v })} />
-          </div>
-          <div className={row} style={border}>
-            <div className="text-[13px] font-semibold">{L.lunch}</div>
-            <div className="flex items-center gap-1.5">
-              <Time label={`${L.lunch} 1`} value={schedule.lunchStart} onChange={(v) => set({ lunchStart: v })} />
-              <span className="text-[color:var(--text-muted)]">~</span>
-              <Time label={`${L.lunch} 2`} value={schedule.lunchEnd} onChange={(v) => set({ lunchEnd: v })} />
-            </div>
-          </div>
-          <div className={row} style={border}>
-            <div className="text-[13px] font-semibold">{L.workEnd}</div>
-            <Time label={L.workEnd} value={schedule.workEnd} onChange={(v) => set({ workEnd: v })} />
-          </div>
-          <div className={row} style={border}>
             <div className="text-[13px] font-semibold">{L.workdays}</div>
             <div className="flex gap-1">
               {L.dayNames.map((name, d) => {
@@ -90,6 +95,58 @@ export function ScheduleSettings() {
               })}
             </div>
           </div>
+          <div className={row} style={border}>
+            <div>
+              <div className="text-[13px] font-semibold">{L.perDay}</div>
+              <div className="text-[12px] text-[color:var(--text-muted)]">{L.perDayHint}</div>
+            </div>
+            {toggle(schedule.perDay, setPerDay, L.perDay)}
+          </div>
+
+          {schedule.perDay ? (
+            schedule.workdays.map((d) => {
+              const h = hoursFor(schedule, d);
+              const name = L.dayNames[d];
+              const ok = isValidHours(h);
+              return (
+                <div key={d} className="space-y-2 border-t py-3" style={border}>
+                  <div className="flex items-center justify-between gap-4">
+                    <span
+                      className="flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-semibold"
+                      style={{ background: ok ? "var(--accent)" : "var(--danger)", color: "#0d2a1f" }}
+                    >
+                      {name}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <Time label={`${name} ${L.workStart}`} value={h.workStart} onChange={(v) => setDay(d, { workStart: v })} />
+                      <span className="text-[color:var(--text-muted)]">→</span>
+                      <Time label={`${name} ${L.workEnd}`} value={h.workEnd} onChange={(v) => setDay(d, { workEnd: v })} />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-[12px] text-[color:var(--text-muted)]">{L.lunch}</span>
+                    {lunchRange(h, (p) => setDay(d, p), `${name} `)}
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <>
+              <div className={row} style={border}>
+                <div className="text-[13px] font-semibold">{L.workStart}</div>
+                <Time label={L.workStart} value={schedule.workStart} onChange={(v) => set({ workStart: v })} />
+              </div>
+              <div className={row} style={border}>
+                <div className="text-[13px] font-semibold">{L.lunch}</div>
+                {lunchRange(schedule, set)}
+              </div>
+              <div className={row} style={border}>
+                <div className="text-[13px] font-semibold">{L.workEnd}</div>
+                <Time label={L.workEnd} value={schedule.workEnd} onChange={(v) => set({ workEnd: v })} />
+              </div>
+            </>
+          )}
+
           <div className={row} style={border}>
             <div className="text-[13px] font-semibold">{L.cheers}</div>
             {toggle(schedule.cheers, (v) => set({ cheers: v }), L.cheers)}

@@ -68,6 +68,8 @@ export const en = {
     workEnd: "End work",
     workdays: "Workdays",
     dayNames: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+    perDay: "Different hours per day",
+    perDayHint: "Set start, lunch and end times for each workday.",
     cheers: "Random cheer-up messages",
     invalid: "Times must go in order: start < lunch start ≤ lunch end < end.",
   },

@@ -4,15 +4,22 @@
  *   before work ─ start ─ morning ─ lunchStart ─ lunch ─ lunchEnd ─ afternoon ─ end ─ done
  */
 
-export interface WorkSchedule {
-  enabled: boolean;
-  /** "HH:MM", 24h, local time. */
+/** One day's hours. "HH:MM", 24h, local time. */
+export interface DayHours {
   workStart: string;
   lunchStart: string;
   lunchEnd: string;
   workEnd: string;
+}
+
+export interface WorkSchedule extends DayHours {
+  enabled: boolean;
   /** 0 = Sunday ... 6 = Saturday. */
   workdays: number[];
+  /** Use `days[d]` instead of the shared hours above, where set. */
+  perDay: boolean;
+  /** Per-weekday hours, keyed by day number ("0".."6" once stored as JSON). */
+  days: Partial<Record<number, DayHours>>;
   /** Mix random cheer-up messages into the bubble. */
   cheers: boolean;
 }
@@ -24,8 +31,18 @@ export const DEFAULT_SCHEDULE: WorkSchedule = {
   lunchEnd: "13:00",
   workEnd: "18:00",
   workdays: [1, 2, 3, 4, 5],
+  perDay: false,
+  days: {},
   cheers: true,
 };
+
+const pickHours = ({ workStart, lunchStart, lunchEnd, workEnd }: DayHours): DayHours => ({ workStart, lunchStart, lunchEnd, workEnd });
+
+/** The hours that apply on weekday `day`: its own when per-day is on, else the shared ones. */
+export function hoursFor(s: WorkSchedule, day: number): DayHours {
+  const own = s.perDay ? s.days?.[day] : undefined;
+  return own ? pickHours(own) : pickHours(s);
+}
 
 export type WorkPhase =
   | { kind: "off" }
@@ -47,7 +64,7 @@ export function parseHM(s: string): number | null {
 }
 
 /** Minutes since midnight of each boundary, or null unless start < lunchStart <= lunchEnd < end. */
-function boundaries(s: WorkSchedule) {
+function boundaries(s: DayHours) {
   const start = parseHM(s.workStart);
   const lunchStart = parseHM(s.lunchStart);
   const lunchEnd = parseHM(s.lunchEnd);
@@ -56,11 +73,17 @@ function boundaries(s: WorkSchedule) {
   return start < lunchStart && lunchStart <= lunchEnd && lunchEnd < end ? { start, lunchStart, lunchEnd, end } : null;
 }
 
-export const isValidSchedule = (s: WorkSchedule): boolean => boundaries(s) !== null;
+export const isValidHours = (h: DayHours): boolean => boundaries(h) !== null;
+
+/** Every workday's hours are in order. */
+export const isValidSchedule = (s: WorkSchedule): boolean =>
+  s.perDay ? s.workdays.every((d) => isValidHours(hoursFor(s, d))) : isValidHours(s);
 
 export function workPhase(s: WorkSchedule, now: Date): WorkPhase {
-  const b = boundaries(s);
-  if (!s.enabled || !b || !s.workdays.includes(now.getDay())) return { kind: "off" };
+  const day = now.getDay();
+  if (!s.enabled || !s.workdays.includes(day)) return { kind: "off" };
+  const b = boundaries(hoursFor(s, day));
+  if (!b) return { kind: "off" };
   const { start, lunchStart, lunchEnd, end } = b;
   // Round seconds up so "1 minute left" lasts until the minute actually ends.
   const t = now.getHours() * 60 + now.getMinutes() + (now.getSeconds() > 0 ? 1 / 60 : 0);

@@ -67,6 +67,8 @@ export const ko: Dict = {
     workEnd: "퇴근 시간",
     workdays: "근무 요일",
     dayNames: ["일", "월", "화", "수", "목", "금", "토"],
+    perDay: "요일별로 다르게",
+    perDayHint: "근무 요일마다 출퇴근·점심 시간을 따로 정해요.",
     cheers: "랜덤 응원 메시지",
     invalid: "시간 순서를 확인하세요: 출근 < 점심 시작 ≤ 점심 끝 < 퇴근",
   },
