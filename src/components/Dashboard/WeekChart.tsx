@@ -3,13 +3,11 @@ import type { DailyRow } from "@/lib/backend";
 import { useT, type Dict } from "@/i18n";
 import { formatCompact, formatDuration } from "@/utils/format";
 
-type MetricKey = "time" | "lines" | "tokens";
+type MetricKey = "time" | "lines";
 
 const METRICS: Record<MetricKey, { label: (t: Dict) => string; value: (d: DailyRow) => number; format: (n: number) => string }> = {
   time: { label: (t) => t.chart.time, value: (d) => d.codingMs, format: formatDuration },
-  lines: { label: (t) => t.chart.lines, value: (d) => d.linesAdded, format: (n) => formatCompact(n) },
-  tokens: { label: (t) => t.chart.tokens, value: (d) => d.inputTokens + d.outputTokens, format: (n) => formatCompact(n) },
-};
+  lines: { label: (t) => t.chart.lines, value: (d) => d.linesAdded, format: (n) => formatCompact(n) },};
 
 const weekday = (date: string, locale: string) => {
   const d = new Date(`${date}T00:00:00`);

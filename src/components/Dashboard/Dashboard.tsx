@@ -7,7 +7,7 @@ import { EVT_PROGRESS, EVT_SYNC_CHANGED } from "@/services/runtime";
 import { useT } from "@/i18n";
 import { selectStatus, useAI } from "@/stores/aiStore";
 import { useSettings } from "@/stores/settingsStore";
-import { formatCompact, formatDuration, formatInt, formatRelative } from "@/utils/format";
+import { formatDuration, formatInt, formatRelative } from "@/utils/format";
 import { localDate } from "@/utils/format";
 import { ActivityChip } from "../common/ActivityChip";
 import { UsageSections } from "../UsagePanel/UsagePanel";
@@ -98,21 +98,9 @@ export function Dashboard() {
 
       <div>
         <div className="label mb-2">{t.dashboard.today}</div>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="grid grid-cols-3 gap-3">
           <Tile label={t.dashboard.codingTime} value={formatDuration(today?.codingMs ?? 0)} sub={t.dashboard.turns(formatInt(today?.turns ?? 0))} />
           <Tile label={t.dashboard.sessions} value={formatInt(today?.sessions ?? 0)} />
-          <Tile
-            label={t.dashboard.tokens}
-            value={
-              <>
-                {formatCompact(today?.inputTokens ?? 0)}
-                <span className="text-[13px] font-medium text-[color:var(--text-muted)]">{t.dashboard.tokensIn}</span>{" "}
-                {formatCompact(today?.outputTokens ?? 0)}
-                <span className="text-[13px] font-medium text-[color:var(--text-muted)]">{t.dashboard.tokensOut}</span>
-              </>
-            }
-            sub={t.dashboard.tokensEstimated}
-          />
           <Tile
             label={t.dashboard.code}
             value={

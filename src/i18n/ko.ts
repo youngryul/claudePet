@@ -113,24 +113,6 @@ export const ko: Dict = {
       "각 컴퓨터가 이 폴더에 하루 단위 합계(시간, 턴, 줄 수, 토큰, XP)만 담은 작은 파일 하나를 써요. 프롬프트나 코드는 들어가지 않아요. 다른 컴퓨터에서도 같은 클라우드 폴더를 고르세요.",
   },
 
-  chat: {
-    open: "펫과 대화하기",
-    title: "대화",
-    back: "뒤로",
-    newChat: "새 대화",
-    empty: "말을 걸어 보세요! 내 Claude 로그인으로 Claude Code가 펫 대신 대답해요.",
-    placeholder: "펫에게 메시지 보내기…",
-    send: "보내기",
-    stop: "멈추기",
-    thinking: "생각 중…",
-    notFound:
-      "이 컴퓨터에서 Claude Code를 찾지 못했어요. Claude Code CLI나 Claude 데스크톱 앱, VS Code 확장 중 하나를 설치한 뒤 다시 시도하세요.",
-    notLoggedIn:
-      "아직 제가 쓸 Claude Code 로그인이 없어요. Claude 데스크톱 앱의 로그인은 앱 안에서만 쓰여서, 열리는 터미널에서 한 번만 로그인해 주세요 (브라우저에서 승인하면 돼요).",
-    openLogin: "Claude Code 로그인",
-    loginOpened: "브라우저에서 로그인을 마친 뒤 메시지를 다시 보내 주세요.",
-  },
-
   usage: {
     planLimits: "요금제 한도",
     limitsTerminalOnly: "요금제 한도는 터미널에서 Claude Code를 쓸 때만 받아와요 (데스크톱 앱·IDE는 보내 주지 않아요).",
@@ -138,8 +120,6 @@ export const ko: Dict = {
     weekly: "주간",
     contextWindow: "컨텍스트 창",
     context: "컨텍스트",
-    inContext: "컨텍스트 토큰",
-    lastOutput: "마지막 출력",
     lines: "줄 수",
     pet: "펫",
     noModel: "아직 모델 없음",
@@ -162,10 +142,6 @@ export const ko: Dict = {
     codingTime: "코딩 시간",
     turns: (n) => `${n}턴`,
     sessions: "세션",
-    tokens: "토큰",
-    tokensIn: " 입력",
-    tokensOut: " 출력",
-    tokensEstimated: "≈ 호출별 사용량으로 추정",
     code: "코드",
     last7: "최근 7일",
     allTime: (time, sessions, lines) => `전체: ${time} · 세션 ${sessions}개 · +${lines}줄`,
@@ -176,7 +152,6 @@ export const ko: Dict = {
   chart: {
     time: "코딩 시간",
     lines: "추가한 줄",
-    tokens: "토큰 (입력 + 출력)",
     chart: "차트",
     table: "표",
     day: "날짜",

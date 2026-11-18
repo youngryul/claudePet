@@ -8,21 +8,8 @@ import { collapse, expand, setBaseSize, type Expansion } from "@/platform/petWin
 import { selectStatus, useAI } from "@/stores/aiStore";
 import { usePet } from "@/stores/petStore";
 import { useSettings } from "@/stores/settingsStore";
-import { listenChat, useChat, type ChatPhase } from "@/stores/chatStore";
-import type { AIActivityState } from "@/providers/core/types";
-import { ChatPanel } from "../Chat/ChatPanel";
 import { UsagePanel } from "../UsagePanel/UsagePanel";
 import { SpeechBubble } from "./SpeechBubble";
-
-type PopoverMode = "status" | "chat";
-
-/** While chatting, the pet reacts to the conversation instead of Claude Code. */
-const CHAT_ACTIVITY: Record<Exclude<ChatPhase, "idle">, AIActivityState> = {
-  thinking: "thinking",
-  talking: "working",
-  done: "completed",
-  error: "error",
-};
 
 const BASE = 220;
 const PET = 150;
@@ -33,9 +20,7 @@ export function PetWindow() {
   const update = useSettings((s) => s.update);
   const status = useAI(selectStatus);
   const setPopoverOpen = usePet((s) => s.setPopoverOpen);
-  const chatPhase = useChat((s) => s.phase);
   const [exp, setExp] = useState<Expansion | null>(null);
-  const [mode, setMode] = useState<PopoverMode>("status");
   const hitRef = useRef<HTMLDivElement>(null);
   const press = useRef<{ x: number; y: number; dragging: boolean } | null>(null);
   const t = useT();
@@ -43,21 +28,17 @@ export function PetWindow() {
 
   const { scale, opacity, animations, clickThrough, alwaysOnTop, visible } = settings.pet;
   const base = useMemo(() => ({ width: Math.round(BASE * scale), height: Math.round(BASE * scale) }), [scale]);
-  const popFor = useCallback(
-    (m: PopoverMode) => (m === "chat" ? { width: 300, height: 400 } : { width: 264, height: settings.display.showUsage ? 492 : 262 }),
-    [settings.display.showUsage],
-  );
-  const pop = popFor(mode);
+  const pop = useMemo(() => ({ width: 264, height: settings.display.showUsage ? 492 : 262 }), [settings.display.showUsage]);
 
   const resolution = useMemo(
     () =>
       resolvePetState({
-        activity: chatPhase === "idle" ? status.activity : CHAT_ACTIVITY[chatPhase],
+        activity: status.activity,
         fiveHour: status.fiveHour.usedPercentage.value,
         weekly: status.weekly.usedPercentage.value,
         context: status.context.usedPercentage.value,
       }),
-    [status, chatPhase],
+    [status],
   );
   const Skin = getSkin(settings.pet.skin).Renderer;
 
@@ -67,10 +48,6 @@ export function PetWindow() {
     if (inTauri) void backend.petSetAlwaysOnTop(alwaysOnTop);
   }, [alwaysOnTop]);
   useEffect(() => void backend.petSetVisible(visible), [visible]);
-  useEffect(() => {
-    const p = listenChat();
-    return () => void p.then((u) => u());
-  }, []);
   useEffect(() => {
     // Tray "Show/Hide Pet" -> persist into settings.
     const p = on<boolean>("pet://visibility", (v) => {
@@ -102,25 +79,12 @@ export function PetWindow() {
     await collapse();
   }, [setPopoverOpen]);
 
-  const open = useCallback(
-    async (m: PopoverMode = "status") => {
-      const e = await expand(base, popFor(m));
-      setMode(m);
-      setExp(e);
-      setPopoverOpen(true);
-      if (inTauri) await getCurrentWindow().setFocus();
-    },
-    [base, popFor, setPopoverOpen],
-  );
-
-  /** Swap popover content; the window is re-grown because the two modes differ in size. */
-  const switchMode = useCallback(
-    async (m: PopoverMode) => {
-      await collapse();
-      await open(m);
-    },
-    [open],
-  );
+  const open = useCallback(async () => {
+    const e = await expand(base, pop);
+    setExp(e);
+    setPopoverOpen(true);
+    if (inTauri) await getCurrentWindow().setFocus();
+  }, [base, pop, setPopoverOpen]);
 
   useEffect(() => {
     if (!inTauri) return;
@@ -179,15 +143,10 @@ export function PetWindow() {
             left: popLeft,
             width: pop.width,
             maxHeight: pop.height - 8,
-            ...(mode === "chat" && { height: pop.height - 8, overflow: "hidden" }),
             ...(exp.placement === "above" ? { bottom: base.height - 6 } : { top: base.height - 6 }),
           }}
         >
-          {mode === "chat" ? (
-            <ChatPanel onBack={() => void switchMode("status")} />
-          ) : (
-            <UsagePanel onOpenDashboard={openDashboard} onOpenChat={() => void switchMode("chat")} />
-          )}
+          <UsagePanel onOpenDashboard={openDashboard} />
         </div>
       )}
 

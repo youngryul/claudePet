@@ -21,14 +21,7 @@ const CHAINED_TIMEOUT: Duration = Duration::from_secs(5);
 pub fn try_run_cli() -> Option<i32> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let mode = args.first()?.as_str();
-    // Claude Code started by the pet's own chat is not coding activity: report nothing.
-    let from_pet_chat = std::env::var_os(crate::chat::CHAT_ENV).is_some()
-        && !args.iter().any(|a| a == "--selftest");
     match mode {
-        "claude-statusline" | "claude-hook" if from_pet_chat => {
-            let _ = read_stdin();
-            Some(0)
-        }
         "claude-statusline" => Some(run_statusline()),
         "claude-hook" => {
             let channel = if args.iter().any(|a| a == "--selftest") {

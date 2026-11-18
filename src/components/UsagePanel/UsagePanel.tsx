@@ -40,9 +40,7 @@ export function UsageSections({ status }: { status: AIStatus }) {
       </Section>
       <Section title={u.contextWindow}>
         <UsageBar label={u.context} metric={status.context.usedPercentage} compact unavailableText="—" />
-        <div className="grid grid-cols-3 gap-2">
-          <Stat label={u.inContext} value={formatInt(status.context.inputTokens.value)} />
-          <Stat label={u.lastOutput} value={formatInt(status.context.outputTokens.value)} />
+        <div>
           <Stat
             label={u.lines}
             value={
@@ -62,13 +60,13 @@ export function UsageSections({ status }: { status: AIStatus }) {
   );
 }
 
-export function UsagePanel({ onOpenDashboard, onOpenChat }: { onOpenDashboard: () => void; onOpenChat: () => void }) {
+export function UsagePanel({ onOpenDashboard }: { onOpenDashboard: () => void }) {
   const status = useAI(selectStatus);
   const mock = useAI((s) => s.mock);
   const { progress, todayCodingMs } = usePet();
   const showUsage = useSettings((s) => s.settings.display.showUsage);
   const lvl = levelFromXp(progress.xp);
-  const { usage: u, chat } = useT();
+  const u = useT().usage;
 
   return (
     <div className="space-y-3 p-3.5 text-[13px]">
@@ -101,14 +99,9 @@ export function UsagePanel({ onOpenDashboard, onOpenChat }: { onOpenDashboard: (
         </div>
       </Section>
 
-      <div className="grid grid-cols-2 gap-2">
-        <button className="btn btn-primary justify-center" onClick={onOpenChat}>
-          💬 {chat.open}
-        </button>
-        <button className="btn justify-center" onClick={onOpenDashboard}>
-          {u.openDashboard}
-        </button>
-      </div>
+      <button className="btn btn-primary w-full justify-center" onClick={onOpenDashboard}>
+        {u.openDashboard}
+      </button>
     </div>
   );
 }

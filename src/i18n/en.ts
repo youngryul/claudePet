@@ -114,24 +114,6 @@ export const en = {
       "Each computer writes one small file of daily totals (time, turns, lines, tokens, XP) into this folder. No prompts or code. Pick the same cloud folder on your other computers.",
   },
 
-  chat: {
-    open: "Talk to pet",
-    title: "Chat",
-    back: "Back",
-    newChat: "New chat",
-    empty: "Say hi! Claude Code answers through your pet, using your Claude login.",
-    placeholder: "Message your pet…",
-    send: "Send",
-    stop: "Stop",
-    thinking: "Thinking…",
-    notFound:
-      "I couldn't find Claude Code on this computer. Install the Claude Code CLI, or the Claude desktop app or the VS Code extension, and try again.",
-    notLoggedIn:
-      "Claude Code isn't signed in for me yet. The Claude desktop app keeps its login to itself, so sign in once in the terminal that opens (a browser window will ask you to approve).",
-    openLogin: "Sign in to Claude Code",
-    loginOpened: "Finish signing in in the browser, then send your message again.",
-  },
-
   usage: {
     planLimits: "Plan limits",
     limitsTerminalOnly: "Plan limits come only from Claude Code in a terminal (the desktop app and IDEs don't send them).",
@@ -139,8 +121,6 @@ export const en = {
     weekly: "Weekly",
     contextWindow: "Context window",
     context: "Context",
-    inContext: "In context",
-    lastOutput: "Last output",
     lines: "Lines",
     pet: "Pet",
     noModel: "No model yet",
@@ -163,10 +143,6 @@ export const en = {
     codingTime: "Coding time",
     turns: (n: string) => `${n} turns`,
     sessions: "Sessions",
-    tokens: "Tokens",
-    tokensIn: " in",
-    tokensOut: " out",
-    tokensEstimated: "≈ estimated from per-call usage",
     code: "Code",
     last7: "Last 7 days",
     allTime: (time: string, sessions: string, lines: string) => `All time: ${time} · ${sessions} sessions · +${lines} lines`,
@@ -177,7 +153,6 @@ export const en = {
   chart: {
     time: "Coding time",
     lines: "Lines added",
-    tokens: "Tokens (in + out)",
     chart: "Chart",
     table: "Table",
     day: "Day",
