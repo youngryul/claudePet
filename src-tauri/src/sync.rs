@@ -155,8 +155,21 @@ fn device_name() -> String {
 // ---------- folder ----------
 
 fn folder(db: &Db) -> Option<PathBuf> {
-    db.kv_get(KV_FOLDER).map(PathBuf::from)
+    db.kv_get(KV_FOLDER).map(|p| drive_root(PathBuf::from(p)))
 }
+
+/// Google Drive's mount point (macOS `CloudStorage/GoogleDrive-<email>`) is read-only;
+/// files go in its "My Drive" folder, which is localized ("내 드라이브" in Korean).
+/// Returns that folder when `path` is such a mount point, otherwise `path` unchanged.
+fn drive_root(path: PathBuf) -> PathBuf {
+    MY_DRIVE_NAMES
+        .iter()
+        .map(|n| path.join(n))
+        .find(|p| p.is_dir())
+        .unwrap_or(path)
+}
+
+const MY_DRIVE_NAMES: &[&str] = &["My Drive", "내 드라이브"];
 
 fn account_dir(root: &Path, account: &Account) -> PathBuf {
     root.join(APP_FOLDER).join(&account.id)
@@ -184,15 +197,13 @@ pub fn candidates() -> Vec<FolderCandidate> {
             for e in entries.flatten() {
                 let name = e.file_name().to_string_lossy().to_string();
                 let label = name.split('-').next().unwrap_or(&name).to_string();
-                let path = e.path();
-                let my_drive = path.join("My Drive");
-                found.push((label, if my_drive.is_dir() { my_drive } else { path }));
+                found.push((label, drive_root(e.path())));
             }
         }
     }
     #[cfg(windows)]
     for letter in ['G', 'H', 'I'] {
-        for sub in ["My Drive", "내 드라이브"] {
+        for sub in MY_DRIVE_NAMES {
             found.push(("Google Drive".into(), PathBuf::from(format!("{letter}:\\{sub}"))));
         }
     }
@@ -375,6 +386,7 @@ pub fn sync_set_folder(
             if !root.is_absolute() || !root.is_dir() {
                 return Err(format!("not a folder: {p}"));
             }
+            let root = drive_root(root);
             let account = state.account().ok_or("Claude account not found")?;
             write_own_file(&db, &account_dir(&root, &account))?;
             db.kv_set(KV_FOLDER, &root.display().to_string())
@@ -399,6 +411,16 @@ mod tests {
             xp: 5,
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn google_drive_mount_resolves_to_localized_my_drive() {
+        let mount = tempfile::tempdir().unwrap();
+        let plain = mount.path().to_path_buf();
+        assert_eq!(drive_root(plain.clone()), plain);
+        let my_drive = plain.join("내 드라이브");
+        std::fs::create_dir(&my_drive).unwrap();
+        assert_eq!(drive_root(plain), my_drive);
     }
 
     #[test]
