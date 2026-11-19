@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { backend, on, type DashboardData } from "@/lib/backend";
 import { levelFromXp } from "@/pet/xp";
 import { resolvePetState } from "@/pet/PetStateMachine";
+import { useWorkMoments } from "@/pet/useWorkMoments";
 import { getSkin } from "@/pet/skins";
 import { EVT_PROGRESS, EVT_SYNC_CHANGED } from "@/services/runtime";
 import { useT } from "@/i18n";
@@ -43,19 +44,15 @@ export function Dashboard() {
 
   const lvl = levelFromXp(data?.progress.xp ?? 0);
   const today = data?.today;
-  const pet = resolvePetState({
-    activity: status.activity,
-    fiveHour: status.fiveHour.usedPercentage.value,
-    weekly: status.weekly.usedPercentage.value,
-    context: status.context.usedPercentage.value,
-  });
+  const { lunch, cheer } = useWorkMoments();
+  const pet = resolvePetState({ activity: status.activity, lunch, cheer });
   const Skin = getSkin(skin).Renderer;
 
   return (
     <div className="space-y-5">
       <div className="grid gap-4 md:grid-cols-[1.1fr_1fr]">
         <div className="card flex items-center gap-4 p-4">
-          <Skin state={pet.state} modifiers={pet.modifiers} animate size={112} />
+          <Skin state={pet.state} animate size={112} />
           <div className="min-w-0 flex-1 space-y-2">
             <div className="flex items-baseline justify-between">
               <div className="text-[18px] font-bold">{t.dashboard.level(lvl.level)}</div>

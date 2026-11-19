@@ -27,11 +27,8 @@ export const ko: Dict = {
     looking_at_user: { label: "기다리는 중", mood: "입력이 필요해요!" },
     celebrating: { label: "완료!", mood: "작업 완료 🎉" },
     dizzy: { label: "오류", mood: "문제가 생겼어요" },
-    slightly_tired: { label: "조금 피곤", mood: "5시간 사용량 60% 초과" },
-    tired: { label: "피곤함", mood: "사용량 80% 초과" },
-    exhausted: { label: "지침", mood: "사용량 거의 소진" },
-    confused: { label: "혼란", mood: "컨텍스트 80% 초과" },
-    overwhelmed: { label: "벅참", mood: "컨텍스트 거의 가득 참" },
+    eating: { label: "점심 먹는 중", mood: "후루룩… 맛있다" },
+    cheering: { label: "응원 중", mood: "힘내요!" },
   },
 
   activity: {

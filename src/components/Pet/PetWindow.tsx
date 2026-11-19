@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { backend, inTauri, on } from "@/lib/backend";
 import { resolvePetState } from "@/pet/PetStateMachine";
+import { useWorkMoments } from "@/pet/useWorkMoments";
 import { useDocumentLang, useT } from "@/i18n";
 import { getSkin } from "@/pet/skins";
 import { collapse, expand, setBaseSize, type Expansion } from "@/platform/petWindow";
@@ -30,15 +31,11 @@ export function PetWindow() {
   const base = useMemo(() => ({ width: Math.round(BASE * scale), height: Math.round(BASE * scale) }), [scale]);
   const pop = useMemo(() => ({ width: 264, height: 262 }), []);
 
+  const { lunch, cheer } = useWorkMoments();
   const resolution = useMemo(
     () =>
-      resolvePetState({
-        activity: status.activity,
-        fiveHour: status.fiveHour.usedPercentage.value,
-        weekly: status.weekly.usedPercentage.value,
-        context: status.context.usedPercentage.value,
-      }),
-    [status],
+      resolvePetState({ activity: status.activity, lunch, cheer }),
+    [status, lunch, cheer],
   );
   const Skin = getSkin(settings.pet.skin).Renderer;
 
@@ -177,7 +174,6 @@ export function PetWindow() {
         >
           <Skin
             state={resolution.state}
-            modifiers={resolution.modifiers}
             animate={animations}
             size={Math.round(PET * scale)}
             detail={status.activity === "tool" ? status.activityDetail : null}

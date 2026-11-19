@@ -28,11 +28,8 @@ export const en = {
     looking_at_user: { label: "Waiting for you", mood: "Needs your input!" },
     celebrating: { label: "Done!", mood: "Task complete 🎉" },
     dizzy: { label: "Error", mood: "Something went wrong" },
-    slightly_tired: { label: "A bit tired", mood: "5h usage over 60%" },
-    tired: { label: "Tired", mood: "Usage over 80%" },
-    exhausted: { label: "Exhausted", mood: "Usage nearly maxed" },
-    confused: { label: "Confused", mood: "Context over 80%" },
-    overwhelmed: { label: "Overwhelmed", mood: "Context nearly full" },
+    eating: { label: "Lunch break", mood: "Slurp… yum" },
+    cheering: { label: "Cheering you on", mood: "You can do it!" },
   } as Record<PetState, { label: string; mood: string }>,
 
   activity: {

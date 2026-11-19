@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_SCHEDULE, isValidSchedule, parseHM, pickIndex, workPhase, type WorkSchedule } from "./workday";
+import { DEFAULT_SCHEDULE, isCheerTime, isValidSchedule, parseHM, pickIndex, workPhase, type WorkSchedule } from "./workday";
 
 const s: WorkSchedule = { ...DEFAULT_SCHEDULE, enabled: true };
 // 2026-11-17 is a Tuesday.
@@ -60,5 +60,28 @@ describe("helpers", () => {
   it("never repeats the previous cheer", () => {
     for (let r = 0; r < 1; r += 0.1) expect(pickIndex(5, 2, () => r)).not.toBe(2);
     expect(pickIndex(1, 0)).toBe(0);
+  });
+});
+
+describe("isCheerTime", () => {
+  const on: WorkSchedule = { ...DEFAULT_SCHEDULE, enabled: true };
+  // 2026-01-05 is a Monday; default hours 09:00 / 12:00-13:00 / 18:00.
+  const mon = (hm: string, day = "2026-01-05") => new Date(`${day}T${hm}:00`);
+
+  it.each([
+    ["09:10", true],
+    ["09:11", false],
+    ["09:09", false],
+    ["11:50", true],
+    ["11:51", false],
+    ["17:50", true],
+    ["12:30", false],
+  ])("%s -> %s", (hm, expected) => {
+    expect(isCheerTime(on, mon(hm))).toBe(expected);
+  });
+
+  it("is off when the schedule is off or on a non-workday", () => {
+    expect(isCheerTime(DEFAULT_SCHEDULE, mon("09:10"))).toBe(false);
+    expect(isCheerTime(on, mon("09:10", "2026-01-04"))).toBe(false); // Sunday
   });
 });

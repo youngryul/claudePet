@@ -9,14 +9,8 @@ export type PetState =
   | "looking_at_user"
   | "celebrating"
   | "dizzy"
-  | "slightly_tired"
-  | "tired"
-  | "exhausted"
-  | "confused"
-  | "overwhelmed";
-
-/** Condition overlays that can decorate an activity state (e.g. coding while tired). */
-export type PetModifier = "sweat" | "question" | "heavy_eyes";
+  | "eating"
+  | "cheering";
 
 export const PET_STATE_INFO: Record<PetState, { label: string; mood: string }> = {
   sleeping: { label: "Sleeping", mood: "Zzz… no agent running" },
@@ -27,9 +21,6 @@ export const PET_STATE_INFO: Record<PetState, { label: string; mood: string }> =
   looking_at_user: { label: "Waiting for you", mood: "Needs your input!" },
   celebrating: { label: "Done!", mood: "Task complete 🎉" },
   dizzy: { label: "Error", mood: "Something went wrong" },
-  slightly_tired: { label: "A bit tired", mood: "5h usage over 60%" },
-  tired: { label: "Tired", mood: "Usage over 80%" },
-  exhausted: { label: "Exhausted", mood: "Usage nearly maxed" },
-  confused: { label: "Confused", mood: "Context over 80%" },
-  overwhelmed: { label: "Overwhelmed", mood: "Context nearly full" },
+  eating: { label: "Lunch break", mood: "Slurp… yum" },
+  cheering: { label: "Cheering", mood: "You can do it!" },
 };

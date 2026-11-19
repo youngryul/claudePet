@@ -101,3 +101,23 @@ export function pickIndex(length: number, previous: number | null, random = Math
   const i = Math.floor(random() * (length - 1));
   return previous !== null && i >= previous ? i + 1 : i;
 }
+
+/** How long the cheer-up pet stays out at each moment. */
+export const CHEER_MINUTES = 1;
+/** Offsets (minutes) from the day's boundaries at which the pet cheers. */
+const CHEER_AT = { afterStart: 10, beforeLunch: 10, beforeEnd: 10 } as const;
+
+/**
+ * Cheer-up moments on a workday: 10 min after work starts, 10 min before lunch and
+ * 10 min before work ends. True for `CHEER_MINUTES` from each moment.
+ */
+export function isCheerTime(s: WorkSchedule, now: Date): boolean {
+  const day = now.getDay();
+  if (!s.enabled || !s.workdays.includes(day)) return false;
+  const b = boundaries(hoursFor(s, day));
+  if (!b) return false;
+  const t = now.getHours() * 60 + now.getMinutes();
+  return [b.start + CHEER_AT.afterStart, b.lunchStart - CHEER_AT.beforeLunch, b.end - CHEER_AT.beforeEnd].some(
+    (m) => t >= m && t < m + CHEER_MINUTES,
+  );
+}

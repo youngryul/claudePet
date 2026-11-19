@@ -34,12 +34,7 @@ export function DevPanel() {
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
         {scenarios.map((s) => {
-          const r = resolvePetState({
-            activity: s.status.activity,
-            fiveHour: s.status.fiveHour.usedPercentage.value,
-            weekly: s.status.weekly.usedPercentage.value,
-            context: s.status.context.usedPercentage.value,
-          });
+          const r = resolvePetState({ activity: s.status.activity });
           const Skin = getSkin(skinId).Renderer;
           return (
             <button
@@ -48,13 +43,29 @@ export function DevPanel() {
               className="card flex flex-col items-center p-2 text-[12px] transition-transform hover:-translate-y-0.5"
               style={active === s.id ? { borderColor: "var(--accent)", boxShadow: "0 0 0 2px var(--accent-soft)" } : undefined}
             >
-              <Skin state={r.state} modifiers={r.modifiers} animate size={84} detail={s.status.activityDetail} />
+              <Skin state={r.state} animate size={84} detail={s.status.activityDetail} />
               <span className="mono font-semibold">{s.label}</span>
               <span className="text-[11px] text-[color:var(--text-muted)]">
                 → {r.state}
-                {r.modifiers.length ? ` +${r.modifiers.join(",")}` : ""}
               </span>
             </button>
+          );
+        })}
+        {/* Schedule-driven states (the live pet shows them from the work schedule). */}
+        {(
+          [
+            ["lunch break", { activity: "idle", lunch: true }],
+            ["cheer-up minute", { activity: "idle", cheer: true }],
+          ] as const
+        ).map(([label, ctx]) => {
+          const r = resolvePetState(ctx);
+          const Skin = getSkin(skinId).Renderer;
+          return (
+            <div key={label} className="card flex flex-col items-center p-2 text-[12px]">
+              <Skin state={r.state} animate size={84} />
+              <span className="mono font-semibold">{label}</span>
+              <span className="text-[11px] text-[color:var(--text-muted)]">→ {r.state}</span>
+            </div>
           );
         })}
       </div>
