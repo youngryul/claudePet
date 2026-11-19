@@ -139,8 +139,10 @@ fn pet_reset_position(app: tauri::AppHandle) {
     platform::placement::reset(&app);
 }
 
+// Must be async: on Windows, building a webview window inside a synchronous
+// command deadlocks (sync commands run on the main thread that WebView2 needs).
 #[tauri::command]
-fn open_dashboard(app: tauri::AppHandle, tab: Option<String>) {
+async fn open_dashboard(app: tauri::AppHandle, tab: Option<String>) {
     windows::open_dashboard(&app, tab.as_deref());
 }
 
