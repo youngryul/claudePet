@@ -1,6 +1,6 @@
 [package]
 name = "ai-coding-pet"
-version = "0.1.9"
+version = "0.1.10"
 description = "A desktop pet that reacts to your AI coding agent"
 authors = ["youngryul"]
 edition = "2021"
