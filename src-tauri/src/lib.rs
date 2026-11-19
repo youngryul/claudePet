@@ -2,10 +2,11 @@
 //!
 //! Responsibilities of the Rust layer (kept deliberately thin):
 //! transport (collector), persistence (SQLite), OS integration (windows, tray,
-//! click-through, autostart) and Claude settings patching. Provider normalisation,
-//! the pet state machine and XP rules live in TypeScript (`src/`).
+//! click-through, autostart) and Claude / Codex settings patching. Provider
+//! normalisation, the pet state machine and XP rules live in TypeScript (`src/`).
 
 pub mod claude;
+pub mod codex;
 pub mod collector;
 pub mod db;
 pub mod paths;
@@ -58,6 +59,11 @@ fn collector_snapshot(state: tauri::State<'_, Arc<CollectorState>>) -> Collector
 #[tauri::command]
 fn claude_process_running(probe: tauri::State<'_, process::ProcessProbe>) -> bool {
     probe.claude_running()
+}
+
+#[tauri::command]
+fn codex_process_running(probe: tauri::State<'_, process::ProcessProbe>) -> bool {
+    probe.codex_running()
 }
 
 #[tauri::command]
@@ -221,6 +227,7 @@ pub fn run() {
             app_info,
             collector_snapshot,
             claude_process_running,
+            codex_process_running,
             settings_load,
             settings_save,
             stats_apply,
@@ -238,6 +245,10 @@ pub fn run() {
             claude::claude_preview,
             claude::claude_apply,
             claude::claude_test_connection,
+            codex::codex_detect,
+            codex::codex_preview,
+            codex::codex_apply,
+            codex::codex_test_connection,
             sync::sync_status,
             sync::sync_set_folder,
         ])

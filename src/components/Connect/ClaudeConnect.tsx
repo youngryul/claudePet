@@ -5,7 +5,7 @@ import { formatRelative } from "@/utils/format";
 
 type StepState = "ok" | "warn" | "fail" | "pending";
 
-function Step({ n, title, state, children }: { n: number; title: string; state: StepState; children?: ReactNode }) {
+export function Step({ n, title, state, children }: { n: number; title: string; state: StepState; children?: ReactNode }) {
   const color = { ok: "var(--ok)", warn: "var(--warn)", fail: "var(--danger)", pending: "var(--text-muted)" }[state];
   const icon = { ok: "✓", warn: "!", fail: "✕", pending: String(n) }[state];
   return (
@@ -24,7 +24,7 @@ function Step({ n, title, state, children }: { n: number; title: string; state: 
   );
 }
 
-function PreviewCard({
+export function PreviewCard({
   preview,
   busy,
   onApprove,

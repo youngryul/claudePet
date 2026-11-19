@@ -15,7 +15,7 @@ export const PROVIDER_FACTORIES: Record<string, () => AIProvider> = {
 
 export const PROVIDER_INFO = [
   { id: "claude", name: "Claude Code", implemented: true },
-  { id: "codex", name: "Codex CLI", implemented: false },
+  { id: "codex", name: "Codex CLI", implemented: true },
   { id: "gemini", name: "Gemini CLI", implemented: false },
 ] as const;
 

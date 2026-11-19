@@ -152,6 +152,37 @@ export interface ConnectionTest {
   message: string;
 }
 
+export interface CodexHookStatus {
+  connectedHooks: string[];
+  missingHooks: string[];
+  fullyConnected: boolean;
+}
+
+export interface CodexDetection {
+  installed: boolean;
+  cliPath: string | null;
+  version: string | null;
+  homeDir: string | null;
+  homeDirExists: boolean;
+  hooksPath: string | null;
+  hooksExists: boolean;
+  hooksError: string | null;
+  status: CodexHookStatus;
+  exePath: string | null;
+  isDevBuild: boolean;
+}
+
+export interface CodexApplyResult {
+  backupPath: string | null;
+  status: CodexHookStatus;
+  changed: boolean;
+}
+
+export interface CodexConnectionTest {
+  collectorOk: boolean;
+  lastEventAt: number | null;
+}
+
 export interface SyncStatus {
   account: { id: string; email: string | null } | null;
   folder: string | null;
@@ -202,6 +233,7 @@ export const backend = {
     }),
   onCollectorEvent: (h: (e: CollectorEvent) => void) => on<CollectorEvent>("collector://event", h),
   claudeProcessRunning: () => call<boolean | null>("claude_process_running", undefined, null),
+  codexProcessRunning: () => call<boolean | null>("codex_process_running", undefined, null),
 
   settingsLoad: () => call<unknown | null>("settings_load", undefined, null),
   settingsSave: (settings: unknown) => call<void>("settings_save", { settings }),
@@ -233,6 +265,12 @@ export const backend = {
   claudeApply: (action: "connect" | "disconnect", baseHash: string) =>
     call<ApplyResult>("claude_apply", { action, baseHash }),
   claudeTestConnection: () => call<ConnectionTest>("claude_test_connection"),
+
+  codexDetect: () => call<CodexDetection>("codex_detect"),
+  codexPreview: (action: "connect" | "disconnect") => call<SettingsPreview>("codex_preview", { action }),
+  codexApply: (action: "connect" | "disconnect", baseHash: string) =>
+    call<CodexApplyResult>("codex_apply", { action, baseHash }),
+  codexTestConnection: () => call<CodexConnectionTest>("codex_test_connection"),
 
   syncStatus: () => call<SyncStatus>("sync_status", undefined, browserSyncStatus),
   syncSetFolder: (path: string | null) =>

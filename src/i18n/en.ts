@@ -5,7 +5,7 @@ import type { AIStatus, Metric } from "@/providers/core/types";
 export const en = {
   locale: "en-US",
 
-  tabs: { dashboard: "Dashboard", connect: "Claude Code", settings: "Settings", dev: "Developer" },
+  tabs: { dashboard: "Dashboard", connect: "Connect", settings: "Settings", dev: "Developer" },
 
   format: {
     never: "never",
@@ -51,6 +51,8 @@ export const en = {
   metricSource: {
     claude_statusline: "Reported by Claude Code statusLine",
     claude_hook: "Reported by Claude Code hooks",
+    codex_hook: "Reported by Codex CLI hooks",
+    codex_rollout: "Read from the Codex CLI session log",
     process_probe: "Local process check",
     derived: "Estimated by AI Coding Pet",
     mock: "Developer mode mock value",
@@ -176,9 +178,9 @@ export const en = {
     petPositionHint: "Move the pet back to the bottom-right corner",
     resetPosition: "Reset position",
     providers: "AI providers",
-    primary: "Primary - drives the pet",
+    primary: "Primary - the pet follows it when both are equally busy",
     comingSoon: "Coming soon",
-    providersRestart: "Provider changes apply after restarting the app.",
+    providersRestart: "The pet follows whichever agent is busier. Changes apply right away.",
   },
 
   connect: {
@@ -205,8 +207,8 @@ export const en = {
     nothingToChange: "Nothing to change - already up to date.",
     keepNote:
       "All your other settings are kept as-is. A backup of the current file is saved before writing, and Disconnect removes only what AI Coding Pet added.",
-    showJson: "Show resulting settings.json",
-    hideJson: "Hide resulting settings.json",
+    showJson: "Show the resulting file",
+    hideJson: "Hide the resulting file",
     before: "before",
     after: "after",
     noFile: "(file does not exist)",
@@ -230,6 +232,32 @@ export const en = {
     addedTag2: " so Disconnect can find it.",
     shell: "Command shell on this machine: ",
     exe: ". Executable: ",
+  },
+
+  codexConnect: {
+    title: "Connect Codex CLI",
+    intro:
+      "AI Coding Pet reads Codex CLI's official hook events and only the token and limit numbers from its session log on this computer. Prompts and replies are never read out, and nothing is sent anywhere else.",
+    step1: "Codex installed",
+    configFound: "Codex folder found (CLI not on PATH for GUI apps - that's fine).",
+    notFound: "Not found. Install Codex CLI first: https://developers.openai.com/codex",
+    step2: "Codex folder (CODEX_HOME)",
+    step3: "Read hooks.json",
+    noHooksFile: "No hooks.json yet (it will be created)",
+    step4: "hooks",
+    connected: (n: number) => `Connected (${n} hooks).`,
+    step5: "Approve the hooks in Codex",
+    trustHint:
+      "Codex only runs hooks you have approved. After connecting, open /hooks in the Codex CLI and trust the AI Coding Pet hooks (in the Codex app: Settings > Hooks). Approve again after reconnecting, since the commands change.",
+    collectorFail: "The collector could not reach the app.",
+    waiting: "Collector OK. After approving the hooks, send Codex a message.",
+    arriving: "Connected. Codex events are arriving.",
+    connectBtn: "Connect Codex CLI",
+    addedHooks:
+      " (async where Codex allows, never block Codex): SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, PermissionRequest, PostModelRequest, PreCompact, PostCompact, SubagentStart, SubagentStop, Stop, Interrupt, SessionEnd.",
+    addedUsage:
+      "The hook command reads only token counts, the context window size and the 5h / weekly limit percentages from the session log. Prompts, replies, tool input/output and folders are dropped.",
+    exe: "Executable: ",
   },
 };
 

@@ -2,11 +2,12 @@
  * AgentRuntime runs in the pet window (always alive, even when hidden). It owns the
  * providers and the usage tracker, and broadcasts status to other windows.
  *
- *   Provider (RAW -> AIStatus) -> aiStore -> PetStateMachine -> Pet UI
+ *   Provider (RAW -> AIStatus) -> pickDisplayed -> aiStore -> PetStateMachine -> Pet UI
  *            (UsageObservation) -> UsageTracker -> SQLite
  */
 import { backend, broadcast, on } from "@/lib/backend";
 import { PROVIDER_FACTORIES } from "@/providers/registry";
+import { SALIENCE } from "@/providers/core/sessionActivity";
 import type { AIProvider, AIStatus } from "@/providers/core/types";
 import { useAI } from "@/stores/aiStore";
 import { usePet } from "@/stores/petStore";
@@ -30,6 +31,20 @@ function trayLabel(s: AIStatus): string {
   return `● ${s.providerName} Connected${act}`;
 }
 
+/**
+ * With several agents enabled the pet follows the busiest one (waiting beats working
+ * beats idle); on a tie, the primary provider.
+ */
+export function pickDisplayed(statuses: AIStatus[], primary: string): AIStatus | null {
+  let best: AIStatus | null = null;
+  for (const s of statuses) {
+    const rank = SALIENCE[s.activity] * 2 + (s.provider === primary ? 1 : 0);
+    const bestRank = best ? SALIENCE[best.activity] * 2 + (best.provider === primary ? 1 : 0) : -1;
+    if (rank > bestRank) best = s;
+  }
+  return best;
+}
+
 export async function startRuntime(): Promise<() => void> {
   const cleanups: (() => void)[] = [];
   const { providers } = useSettings.getState().settings;
@@ -50,6 +65,18 @@ export async function startRuntime(): Promise<() => void> {
   cleanups.push(await on(EVT_SYNC_CHANGED, () => void refreshToday()));
 
   let lastTray = "";
+  const latest = new Map<string, AIStatus>();
+  const show = () => {
+    const s = pickDisplayed([...latest.values()], providers.primary);
+    if (!s) return;
+    useAI.getState().setLive(s);
+    void broadcast(EVT_STATUS, s);
+    const label = trayLabel(s);
+    if (label !== lastTray) {
+      lastTray = label;
+      void backend.traySetStatus(label);
+    }
+  };
   for (const provider of active) {
     const tracker = new UsageTracker(provider.id, (progress) => {
       usePet.getState().setProgress(progress);
@@ -61,20 +88,13 @@ export async function startRuntime(): Promise<() => void> {
     cleanups.push(provider.onUsage((o) => void tracker.observe(o)));
     cleanups.push(provider.onLifecycle((e) => void tracker.lifecycle(e)));
 
-    if (provider.id === providers.primary) {
-      cleanups.push(
-        provider.onStatus((s) => {
-          useAI.getState().setLive(s);
-          tracker.activityTick(s, Date.now());
-          void broadcast(EVT_STATUS, s);
-          const label = trayLabel(s);
-          if (label !== lastTray) {
-            lastTray = label;
-            void backend.traySetStatus(label);
-          }
-        }),
-      );
-    }
+    cleanups.push(
+      provider.onStatus((s) => {
+        tracker.activityTick(s, Date.now());
+        latest.set(provider.id, s);
+        show();
+      }),
+    );
     await provider.start();
     cleanups.push(() => void provider.stop());
   }

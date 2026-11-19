@@ -23,8 +23,18 @@ fn looks_like_claude_code(name: &str, cmd: &[std::ffi::OsString]) -> bool {
         })
 }
 
+/// Codex CLI is a native `codex` binary (the npm package launches it from node, and
+/// the Codex desktop app runs it as its app server, where hooks fire too).
+fn looks_like_codex(name: &str, cmd: &[std::ffi::OsString]) -> bool {
+    if name == "codex" || name == "codex.exe" {
+        return true;
+    }
+    let is_node = name == "node" || name == "node.exe";
+    is_node && cmd.iter().any(|a| a.to_string_lossy().contains("@openai/codex"))
+}
+
 impl ProcessProbe {
-    pub fn claude_running(&self) -> bool {
+    fn any_process(&self, matches: fn(&str, &[std::ffi::OsString]) -> bool) -> bool {
         let mut guard = self.0.lock().unwrap();
         let sys = guard.get_or_insert_with(System::new);
         sys.refresh_processes_specifics(
@@ -34,7 +44,15 @@ impl ProcessProbe {
         );
         sys.processes()
             .values()
-            .any(|p| looks_like_claude_code(&p.name().to_string_lossy(), p.cmd()))
+            .any(|p| matches(&p.name().to_string_lossy(), p.cmd()))
+    }
+
+    pub fn claude_running(&self) -> bool {
+        self.any_process(looks_like_claude_code)
+    }
+
+    pub fn codex_running(&self) -> bool {
+        self.any_process(looks_like_codex)
     }
 }
 
@@ -52,5 +70,16 @@ mod tests {
             &["/usr/lib/node_modules/@anthropic-ai/claude-code/cli.js".into()]
         ));
         assert!(!looks_like_claude_code("node", &["server.js".into()]));
+    }
+
+    #[test]
+    fn matches_codex_binary_and_npm_launcher() {
+        assert!(looks_like_codex("codex.exe", &[]));
+        assert!(looks_like_codex(
+            "node",
+            &["C:/npm/node_modules/@openai/codex/bin/codex.js".into()]
+        ));
+        assert!(!looks_like_codex("node", &["server.js".into()]));
+        assert!(!looks_like_codex("claude", &[]));
     }
 }

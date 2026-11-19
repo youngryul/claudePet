@@ -21,9 +21,10 @@ export class ClaudeCollector {
     // Rebuild state after a reload/restart from the backend's in-memory buffer.
     // Replayed events update activity/usage but never re-fire lifecycle (XP) events.
     const snap = await backend.collectorSnapshot();
-    const replay = [...snap.recentHooks, ...(snap.lastStatusline ? [snap.lastStatusline] : [])].sort(
-      (a, b) => a.receivedAt - b.receivedAt,
-    );
+    // The buffer is shared with other providers (Codex), so keep Claude's events only.
+    const replay = [...snap.recentHooks, ...(snap.lastStatusline ? [snap.lastStatusline] : [])]
+      .filter((e) => e.provider === "claude")
+      .sort((a, b) => a.receivedAt - b.receivedAt);
     for (const e of replay) this.sink(e, { replay: true });
   }
 

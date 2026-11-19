@@ -4,8 +4,13 @@
 //!   <exe> claude-hook --source=ai-coding-pet         (hook command, async)
 //!   <exe> claude-hook --selftest                     (connection test from the app)
 //!
-//! Rules: never block Claude Code, never fail loudly, never print to stdout for hooks
-//! (hook stdout could be interpreted as a decision). Always exit 0.
+//! Codex CLI invokes it the same way through `~/.codex/hooks.json`:
+//!
+//!   <exe> codex-hook --source=ai-coding-pet          (hook command)
+//!   <exe> codex-hook --selftest                      (connection test from the app)
+//!
+//! Rules: never block the agent, never fail loudly, never print to stdout for hooks
+//! (hook stdout could be interpreted as a decision or as model context). Always exit 0.
 
 use super::{CollectorEndpoint, IntegrationState, MAX_BODY_BYTES};
 use serde_json::Value;
@@ -31,8 +36,26 @@ pub fn try_run_cli() -> Option<i32> {
             };
             Some(run_hook(channel))
         }
+        "codex-hook" => {
+            let selftest = args.iter().any(|a| a == "--selftest");
+            Some(run_codex_hook(selftest))
+        }
         _ => None,
     }
+}
+
+fn run_codex_hook(selftest: bool) -> i32 {
+    let input = read_stdin();
+    if let Some(endpoint) = CollectorEndpoint::load() {
+        let (path, body) = if selftest {
+            ("/v1/codex/selftest", input)
+        } else {
+            let body = crate::codex::rollout::enrich_hook(&input, read_tail).unwrap_or(input);
+            ("/v1/codex/hook", body)
+        };
+        let _ = post_json(&endpoint, path, &body);
+    }
+    0
 }
 
 fn read_stdin() -> Vec<u8> {
@@ -73,7 +96,7 @@ fn with_transcript_usage(input: &[u8]) -> Option<Vec<u8>> {
     serde_json::to_vec(&v).ok()
 }
 
-fn read_tail(path: &std::path::Path) -> Option<String> {
+pub(crate) fn read_tail(path: &std::path::Path) -> Option<String> {
     use std::io::{Seek, SeekFrom};
     let mut f = std::fs::File::open(path).ok()?;
     let len = f.metadata().ok()?.len();

@@ -63,7 +63,7 @@ Update packages are signed with a minisign key (separate from Apple/Windows code
 
 ## Claude Code integration
 
-Open the dashboard (tray → Open Dashboard) → **Claude Code** tab → **Connect Claude Code**:
+Open the dashboard (tray → Open Dashboard) → **Connect** tab → **Claude Code** → **Connect Claude Code**:
 
 1. checks Claude Code is installed,
 2. resolves the config directory (`$CLAUDE_CONFIG_DIR` or `~/.claude`, via OS path APIs),
@@ -81,6 +81,15 @@ What gets added:
 - `hooks` (all `async: true`, so they never slow Claude down, and they print nothing): `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `PermissionRequest`, `Notification`, `Stop`, `StopFailure`, `SubagentStart`, `SubagentStop`, `PreCompact`, `SessionEnd`.
 
 Commands use shell form (exec-form `args` needs Claude Code 2.1.139+). On Windows the path uses forward slashes; if Git Bash is absent (Claude Code then uses PowerShell) the command is written as `& '<path>' …`. Reconnect after moving/reinstalling the app, since the path is stored.
+
+## Codex CLI integration
+
+**Connect** tab → **Codex CLI** → **Connect Codex CLI** follows the same preview → approve → backup → patch flow on `$CODEX_HOME/hooks.json` (default `~/.codex/hooks.json`), adding hooks for `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PermissionRequest`, `PostModelRequest`, `PreCompact`, `PostCompact`, `SubagentStart`, `SubagentStop`, `Stop`, `Interrupt` and `SessionEnd` (async except the last two, which Codex always runs synchronously with a 3 s cap).
+
+- **Approve once in Codex.** Codex only runs hooks you trust: open `/hooks` in the CLI (or Settings → Hooks in the Codex app) and trust the AI Coding Pet entries. Approve again after reconnecting, since the command changes.
+- **Usage numbers** come from the session log (`transcript_path`): the hook command reads only token counts, the context window size and the 5h / weekly limit percentages from its `token_count` events. That log is an internal Codex format, so missing fields simply show as unavailable.
+- On Windows Codex runs hooks through `cmd.exe /C`, so a `commandWindows` entry with a double-quoted path is written next to the POSIX `command`.
+- With Claude Code and Codex both enabled, the pet follows whichever is busier (error > waiting > tool > working > idle > offline); on a tie, the primary provider.
 
 ## How data is collected
 
@@ -120,7 +129,8 @@ src/
     core/        types.ts (AIProvider, AIStatus, Metric+source), metric.ts, Emitter, PlaceholderProvider
     claude/      ClaudeTypes.ts (documented payloads), claudeParse.ts (null-safe),
                  ClaudeActivity.ts (RAW → DERIVED), ClaudeCollector.ts, ClaudeProvider.ts
-    codex/ gemini/   placeholders
+    codex/       codexParse.ts, CodexActivity.ts, CodexProvider.ts (hooks + session-log numbers)
+    gemini/      placeholder
     registry.ts  provider factories
   pet/           PetStates.ts, PetStateMachine.ts (prioritised rule table), xp.ts, skins/ (renderer interface + SVG skin)
   services/      runtime.ts (wires everything, runs in the pet window), usageTracker.ts, usageDelta.ts, mockScenarios.ts
@@ -150,7 +160,7 @@ src-tauri/src/
 ## Roadmap
 
 - P1 polish: signed/notarized builds, auto-update, onboarding window on first run
-- P2: more pets & skins (sprite/Lottie/Rive), Codex CLI and Gemini CLI providers, achievements
+- P2: more pets & skins (sprite/Lottie/Rive), Gemini CLI provider, achievements
 - Per-project stats (from `workspace.project_dir`), multiple pets for concurrent sessions
 - Linux support (Tauri supports it; click-through/transparency need testing on X11/Wayland)
 

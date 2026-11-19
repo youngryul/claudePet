@@ -129,7 +129,7 @@ fn newest(paths: Vec<PathBuf>) -> Option<PathBuf> {
         .max_by_key(|p| std::fs::metadata(p).and_then(|m| m.modified()).ok())
 }
 
-fn no_window(cmd: &mut Command) -> &mut Command {
+pub(crate) fn no_window(cmd: &mut Command) -> &mut Command {
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
@@ -138,7 +138,7 @@ fn no_window(cmd: &mut Command) -> &mut Command {
     cmd
 }
 
-fn claude_version(cli: &Path) -> Option<String> {
+pub(crate) fn claude_version(cli: &Path) -> Option<String> {
     let mut cmd = if cli.extension().map(|e| e == "cmd").unwrap_or(false) {
         let mut c = Command::new("cmd");
         c.arg("/C").arg(cli);
@@ -178,7 +178,7 @@ fn shell_kind() -> &'static str {
     }
 }
 
-fn exe_path() -> Result<String, String> {
+pub(crate) fn exe_path() -> Result<String, String> {
     let exe = std::env::current_exe().map_err(|e| format!("cannot resolve app executable: {e}"))?;
     let s = exe.to_string_lossy().to_string();
     #[cfg(windows)]
@@ -201,7 +201,7 @@ pub fn pet_commands() -> Result<PetCommands, String> {
     })
 }
 
-fn sha256_hex(bytes: &[u8]) -> String {
+pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
     Sha256::digest(bytes)
         .iter()
         .map(|b| format!("{b:02x}"))
@@ -248,7 +248,7 @@ fn read_settings() -> Result<SettingsFile, String> {
     }
 }
 
-fn pretty(v: &Value) -> String {
+pub(crate) fn pretty(v: &Value) -> String {
     let mut s = serde_json::to_string_pretty(v).unwrap_or_default();
     s.push('\n');
     s
@@ -464,7 +464,7 @@ pub async fn claude_test_connection(
             }
             std::thread::sleep(Duration::from_millis(100));
         }
-        let last = *state.last_event_at.lock().unwrap();
+        let last = state.last_event_for("claude");
         let message = match (ok, last) {
             (false, _) => "The collector could not reach the app.".to_string(),
             (true, Some(_)) => "Connected. Claude Code events are arriving.".to_string(),

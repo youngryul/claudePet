@@ -30,7 +30,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   version: 1,
   pet: { visible: true, alwaysOnTop: true, scale: 1, opacity: 1, animations: true, clickThrough: true, skin: "bluecat" },
   display: { language: "ko" },
-  providers: { enabled: ["claude"], primary: "claude" },
+  // Codex stays offline (and costs nothing) until its hooks are connected.
+  providers: { enabled: ["claude", "codex"], primary: "claude" },
   schedule: DEFAULT_SCHEDULE,
 };
 

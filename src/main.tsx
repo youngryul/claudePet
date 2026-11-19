@@ -14,6 +14,8 @@ const isPet = label === "pet";
 document.body.classList.add(isPet ? "is-pet" : "is-dashboard");
 
 function PetApp() {
+  // Restart the runtime when providers are switched on/off (e.g. after connecting Codex).
+  const providersKey = useSettings((s) => `${s.settings.providers.enabled.join(",")}|${s.settings.providers.primary}`);
   useEffect(() => {
     let stop: (() => void) | undefined;
     let cancelled = false;
@@ -22,7 +24,7 @@ function PetApp() {
       cancelled = true;
       stop?.();
     };
-  }, []);
+  }, [providersKey]);
   return <PetWindow />;
 }
 

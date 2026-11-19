@@ -11,17 +11,18 @@
 use super::{CollectorEndpoint, ENDPOINT_FILE, MAX_BODY_BYTES};
 use serde::Serialize;
 use serde_json::Value;
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::io::Read;
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter};
 
 pub const EVENT_NAME: &str = "collector://event";
 const PREFERRED_PORTS: std::ops::Range<u16> = 47821..47831;
-const RECENT_CAPACITY: usize = 64;
+/// Shared by all providers, so sized for two agents running side by side.
+const RECENT_CAPACITY: usize = 128;
 
 /// Providers the collector accepts. Add new providers here.
-const KNOWN_PROVIDERS: &[&str] = &["claude"];
+const KNOWN_PROVIDERS: &[&str] = &["claude", "codex"];
 const KNOWN_CHANNELS: &[&str] = &["statusline", "hook", "selftest"];
 
 #[derive(Debug, Clone, Serialize)]
@@ -31,7 +32,7 @@ pub struct CollectorEvent {
     /// "statusline" | "hook" | "selftest"
     pub channel: String,
     pub received_at: u64,
-    /// Raw payload exactly as Claude Code produced it (RAW_EVENT).
+    /// Raw payload as the agent produced it (RAW_EVENT), minus dropped fields.
     pub payload: Value,
 }
 
@@ -42,6 +43,8 @@ pub struct CollectorState {
     pub recent_hooks: Mutex<VecDeque<CollectorEvent>>,
     pub last_selftest_at: Mutex<Option<u64>>,
     pub last_event_at: Mutex<Option<u64>>,
+    /// Last real (non-selftest) event per provider, for each provider's connection test.
+    pub last_event_by_provider: Mutex<HashMap<String, u64>>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -54,6 +57,10 @@ pub struct CollectorSnapshot {
 }
 
 impl CollectorState {
+    pub fn last_event_for(&self, provider: &str) -> Option<u64> {
+        self.last_event_by_provider.lock().unwrap().get(provider).copied()
+    }
+
     pub fn snapshot(&self) -> CollectorSnapshot {
         CollectorSnapshot {
             port: self.endpoint.lock().unwrap().as_ref().map(|e| e.port),
@@ -85,6 +92,28 @@ const HOOK_FIELDS: &[&str] = &[
     // Token counts only, extracted by our own hook CLI (see `collector::cli`).
     "transcript_usage",
 ];
+/// Codex CLI hooks (https://learn.chatgpt.com/docs/hooks). Prompts, tool input/output,
+/// `last_assistant_message`, transcript paths and cwd are dropped, as for Claude.
+const CODEX_HOOK_FIELDS: &[&str] = &[
+    "hook_event_name",
+    "session_id",
+    "turn_id",
+    "agent_id",
+    "agent_type",
+    "source",
+    "model",
+    "tool_name",
+    "tool_use_id",
+    "permission_mode",
+    "trigger",
+    "reason",
+    // PostModelRequest
+    "status",
+    "error",
+    // Numbers only: rewritten or added by our own hook CLI (see `collector::cli`).
+    "token_usage",
+    "rollout_usage",
+];
 const STATUSLINE_FIELDS: &[&str] = &[
     "session_id",
     "model",
@@ -97,10 +126,12 @@ const STATUSLINE_FIELDS: &[&str] = &[
     "rate_limits",
 ];
 
-fn sanitize(channel: &str, payload: Value) -> Value {
-    let allowed = match channel {
-        "hook" => HOOK_FIELDS,
-        "statusline" => STATUSLINE_FIELDS,
+fn sanitize(provider: &str, channel: &str, payload: Value) -> Value {
+    let allowed = match (provider, channel) {
+        ("codex", "hook") => CODEX_HOOK_FIELDS,
+        ("codex", _) => &[][..],
+        (_, "hook") => HOOK_FIELDS,
+        (_, "statusline") => STATUSLINE_FIELDS,
         _ => &[][..],
     };
     match payload {
@@ -245,7 +276,7 @@ fn handle(
     };
 
     let now = crate::paths::now_ms();
-    let payload = sanitize(&channel, payload);
+    let payload = sanitize(&provider, &channel, payload);
     let event = CollectorEvent {
         provider,
         channel: channel.clone(),
@@ -265,6 +296,11 @@ fn handle(
     }
     if channel != "selftest" {
         *state.last_event_at.lock().unwrap() = Some(now);
+        state
+            .last_event_by_provider
+            .lock()
+            .unwrap()
+            .insert(event.provider.clone(), now);
     }
     let _ = app.emit(EVENT_NAME, &event);
     respond(request, 200, r#"{}"#);
@@ -286,16 +322,32 @@ mod tests {
         let hook = serde_json::json!({"hook_event_name": "UserPromptSubmit", "session_id": "s",
             "prompt": "secret", "tool_input": {"command": "x"}, "transcript_path": "/p", "cwd": "/c"});
         assert_eq!(
-            sanitize("hook", hook),
+            sanitize("claude", "hook", hook),
             serde_json::json!({"hook_event_name": "UserPromptSubmit", "session_id": "s"})
         );
         let sl = serde_json::json!({"session_id": "s", "workspace": {"current_dir": "/c"}, "rate_limits": {}});
         assert_eq!(
-            sanitize("statusline", sl),
+            sanitize("claude", "statusline", sl),
             serde_json::json!({"session_id": "s", "rate_limits": {}})
         );
         assert_eq!(
-            sanitize("selftest", serde_json::json!({"a": 1})),
+            sanitize("claude", "selftest", serde_json::json!({"a": 1})),
+            serde_json::json!({})
+        );
+    }
+
+    #[test]
+    fn sanitize_codex_drops_prompt_and_messages() {
+        let hook = serde_json::json!({"hook_event_name": "Stop", "session_id": "s", "turn_id": "t",
+            "prompt": "secret", "last_assistant_message": "secret", "tool_input": {"command": "x"},
+            "tool_response": "out", "transcript_path": "/p", "cwd": "/c", "rollout_usage": {"x": 1}});
+        assert_eq!(
+            sanitize("codex", "hook", hook),
+            serde_json::json!({"hook_event_name": "Stop", "session_id": "s", "turn_id": "t",
+                "rollout_usage": {"x": 1}})
+        );
+        assert_eq!(
+            sanitize("codex", "statusline", serde_json::json!({"session_id": "s"})),
             serde_json::json!({})
         );
     }

@@ -19,6 +19,8 @@ export type AIActivityState =
 export type DataSource =
   | "claude_statusline"
   | "claude_hook"
+  | "codex_hook"
+  | "codex_rollout"
   | "process_probe"
   | "derived"
   | "mock"
@@ -107,6 +109,8 @@ export interface UsageObservation {
   fiveHourResetsAt: number | null;
   weeklyPct: number | null;
   weeklyResetsAt: number | null;
+  /** Where the 5h / weekly numbers came from (default: Claude Code statusLine). */
+  limitsSource?: DataSource;
 }
 
 export type LifecycleKind = "session_start" | "turn_complete" | "session_end";

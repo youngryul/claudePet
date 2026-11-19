@@ -39,7 +39,7 @@ pub struct Change {
     pub description: String,
 }
 
-fn change(kind: &str, description: impl Into<String>) -> Change {
+pub(crate) fn change(kind: &str, description: impl Into<String>) -> Change {
     Change {
         kind: kind.into(),
         description: description.into(),
@@ -61,7 +61,7 @@ pub fn is_ours(command: &str) -> bool {
     command.contains(MARKER)
 }
 
-fn handler_is_ours(handler: &Value) -> bool {
+pub(crate) fn handler_is_ours(handler: &Value) -> bool {
     handler
         .get("command")
         .and_then(Value::as_str)
@@ -76,7 +76,7 @@ fn status_line_is_ours(sl: &Value) -> bool {
         .unwrap_or(false)
 }
 
-fn event_has_our_hook(groups: &Value) -> bool {
+pub(crate) fn event_has_our_hook(groups: &Value) -> bool {
     groups
         .as_array()
         .map(|gs| {
@@ -113,7 +113,7 @@ pub fn inspect(settings: &Value) -> ConnectionStatus {
 /// Remove our handlers from one event's matcher groups. Groups that become empty
 /// because of us are dropped; groups the user left empty are kept. Returns true if
 /// anything changed.
-fn strip_ours(groups: &mut Vec<Value>) -> bool {
+pub(crate) fn strip_ours(groups: &mut Vec<Value>) -> bool {
     let before = groups.len();
     let mut changed = false;
     groups.retain_mut(|g| match g.get_mut("hooks").and_then(Value::as_array_mut) {

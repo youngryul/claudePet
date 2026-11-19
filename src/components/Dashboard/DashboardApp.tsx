@@ -5,7 +5,7 @@ import type { MockScenario } from "@/services/mockScenarios";
 import { EVT_MOCK, EVT_REQUEST_STATUS, EVT_STATUS } from "@/services/runtime";
 import { useDocumentLang, useT } from "@/i18n";
 import { useAI } from "@/stores/aiStore";
-import { ClaudeConnect } from "../Connect/ClaudeConnect";
+import { ConnectPage } from "../Connect/ConnectPage";
 import { DevPanel } from "../DevMode/DevPanel";
 import { Settings } from "../Settings/Settings";
 import { Dashboard } from "./Dashboard";
@@ -63,7 +63,7 @@ export function DashboardApp() {
       </nav>
       <main className="flex-1 overflow-y-auto p-5">
         {tab === "dashboard" && <Dashboard />}
-        {tab === "connect" && <ClaudeConnect />}
+        {tab === "connect" && <ConnectPage />}
         {tab === "settings" && <Settings />}
         {tab === "dev" && info?.devMode && <DevPanel />}
       </main>

@@ -4,7 +4,7 @@ import type { Dict } from "./en";
 export const ko: Dict = {
   locale: "ko-KR",
 
-  tabs: { dashboard: "대시보드", connect: "Claude Code", settings: "설정", dev: "개발자" },
+  tabs: { dashboard: "대시보드", connect: "연결", settings: "설정", dev: "개발자" },
 
   format: {
     never: "기록 없음",
@@ -50,6 +50,8 @@ export const ko: Dict = {
   metricSource: {
     claude_statusline: "Claude Code statusLine에서 받은 값",
     claude_hook: "Claude Code hooks에서 받은 값",
+    codex_hook: "Codex CLI hooks에서 받은 값",
+    codex_rollout: "Codex CLI 세션 기록에서 읽은 값",
     process_probe: "로컬 프로세스 확인",
     derived: "AI Coding Pet이 추정한 값",
     mock: "개발자 모드 가짜 값",
@@ -175,9 +177,9 @@ export const ko: Dict = {
     petPositionHint: "펫을 오른쪽 아래 구석으로 되돌려요",
     resetPosition: "위치 초기화",
     providers: "AI 제공자",
-    primary: "기본 - 펫이 이 상태를 따라가요",
+    primary: "기본 - 둘 다 비슷하게 바쁠 때 펫이 이쪽을 따라가요",
     comingSoon: "준비 중",
-    providersRestart: "제공자 변경은 앱을 다시 시작하면 적용돼요.",
+    providersRestart: "펫은 더 바쁜 쪽을 따라가요. 바꾸면 바로 적용돼요.",
   },
 
   connect: {
@@ -204,8 +206,8 @@ export const ko: Dict = {
     nothingToChange: "바꿀 내용이 없어요. 이미 최신 상태예요.",
     keepNote:
       "다른 설정은 모두 그대로 유지돼요. 쓰기 전에 현재 파일을 백업하고, 연결 해제 시에는 AI Coding Pet이 추가한 항목만 지워요.",
-    showJson: "적용 후 settings.json 보기",
-    hideJson: "적용 후 settings.json 숨기기",
+    showJson: "적용 후 파일 보기",
+    hideJson: "적용 후 파일 숨기기",
     before: "변경 전",
     after: "변경 후",
     noFile: "(파일 없음)",
@@ -229,5 +231,31 @@ export const ko: Dict = {
     addedTag2: " 표시가 붙어서 연결 해제 때 찾을 수 있어요.",
     shell: "이 컴퓨터의 명령 셸: ",
     exe: ". 실행 파일: ",
+  },
+
+  codexConnect: {
+    title: "Codex CLI 연결",
+    intro:
+      "AI Coding Pet은 이 컴퓨터에서 Codex CLI의 공식 hooks 이벤트와, 세션 기록 속 토큰·한도 숫자만 읽어요. 프롬프트와 답변 내용은 읽어 가지 않고, 다른 곳으로는 아무것도 보내지 않아요.",
+    step1: "Codex 설치 확인",
+    configFound: "Codex 폴더를 찾았어요 (GUI 앱의 PATH에 CLI가 없어도 괜찮아요).",
+    notFound: "찾을 수 없어요. 먼저 Codex CLI를 설치하세요: https://developers.openai.com/codex",
+    step2: "Codex 폴더 (CODEX_HOME)",
+    step3: "hooks.json 읽기",
+    noHooksFile: "아직 hooks.json이 없어요 (새로 만들어져요)",
+    step4: "hooks",
+    connected: (n) => `연결됨 (hooks ${n}개).`,
+    step5: "Codex에서 hooks 승인",
+    trustHint:
+      "Codex는 승인한 hooks만 실행해요. 연결한 뒤 Codex CLI에서 /hooks를 열어 AI Coding Pet hooks를 신뢰(Trust)하세요 (Codex 앱에서는 설정 > Hooks). 다시 연결하면 명령이 바뀌므로 한 번 더 승인해야 해요.",
+    collectorFail: "수집기가 앱에 연결하지 못했어요.",
+    waiting: "수집기는 정상이에요. hooks를 승인한 뒤 Codex에 메시지를 하나 보내 보세요.",
+    arriving: "연결됐어요. Codex 이벤트가 들어오고 있어요.",
+    connectBtn: "Codex CLI 연결",
+    addedHooks:
+      " (Codex가 허용하는 곳은 비동기, Codex를 막지 않음): SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, PermissionRequest, PostModelRequest, PreCompact, PostCompact, SubagentStart, SubagentStop, Stop, Interrupt, SessionEnd.",
+    addedUsage:
+      "hook 명령은 세션 기록에서 토큰 수, 컨텍스트 창 크기, 5시간·주간 한도 퍼센트만 읽어요. 프롬프트, 답변, 도구 입출력, 폴더 경로는 버려요.",
+    exe: "실행 파일: ",
   },
 };

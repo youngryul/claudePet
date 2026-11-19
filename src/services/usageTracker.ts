@@ -5,7 +5,7 @@
  */
 import { backend, type PetProgress, type UsageSample } from "@/lib/backend";
 import { xpFor } from "@/pet/xp";
-import type { AIStatus, LifecycleEvent, UsageObservation } from "@/providers/core/types";
+import type { AIStatus, DataSource, LifecycleEvent, UsageObservation } from "@/providers/core/types";
 import { localDate } from "@/utils/format";
 import { computeDelta, isWindowReset, toCursor, type SessionCursor } from "./usageDelta";
 
@@ -116,8 +116,9 @@ export class UsageTracker {
       p.codingMs += delta.apiDurationMs;
       p.inputTokens += delta.inputTokens;
       p.outputTokens += delta.outputTokens;
-      this.trackWindow("five_hour", obs.fiveHourPct, obs.fiveHourResetsAt, obs.observedAt);
-      this.trackWindow("seven_day", obs.weeklyPct, obs.weeklyResetsAt, obs.observedAt);
+      const source = obs.limitsSource ?? "claude_statusline";
+      this.trackWindow("five_hour", obs.fiveHourPct, obs.fiveHourResetsAt, obs.observedAt, source);
+      this.trackWindow("seven_day", obs.weeklyPct, obs.weeklyResetsAt, obs.observedAt, source);
     });
   }
 
@@ -147,7 +148,7 @@ export class UsageTracker {
     this.pending.codingMs += Math.min(now - prev, 5_000);
   }
 
-  private trackWindow(metric: string, pct: number | null, resetsAt: number | null, now: number) {
+  private trackWindow(metric: string, pct: number | null, resetsAt: number | null, now: number, source: DataSource) {
     if (pct === null) return;
     const prev = this.windows.get(metric) ?? null;
     const reset = isWindowReset(prev, { pct, resetsAt });
@@ -159,7 +160,7 @@ export class UsageTracker {
         provider: this.provider,
         metric,
         value: pct,
-        source: "claude_statusline",
+        source,
         resetDetected: reset,
       });
     }
