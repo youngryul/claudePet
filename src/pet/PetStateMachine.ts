@@ -41,8 +41,8 @@ export const PET_RULES: PetRule[] = [
   { id: "error", priority: 900, state: "dizzy", when: is("error") },
   { id: "waiting", priority: 850, state: "looking_at_user", when: is("waiting") },
   { id: "completed", priority: 800, state: "celebrating", when: is("completed") },
-  { id: "thinking", priority: 700, state: "thinking", when: is("thinking") },
-  { id: "tool", priority: 650, state: "working", when: is("tool") },
+  // Thinking and tool use are one "Claude running" state.
+  { id: "running", priority: 700, state: "running", when: is("thinking", "tool") },
   { id: "working", priority: 600, state: "coding", when: is("working") },
   { id: "idle", priority: 0, state: "idle", when: () => true },
 ];

@@ -205,18 +205,25 @@ input[type="range"] {
   animation: cat-blink 4.2s steps(1, end) infinite;
 }
 .pet--idle .eyes,
-.pet--coding .eyes,
-.pet--working .eyes {
+.pet--coding .eyes {
   animation: blink 4.5s infinite;
 }
 .pet--coding .body-group {
   animation: bob 0.72s ease-in-out infinite;
 }
-.pet--thinking .body-group {
-  animation: sway 3.4s ease-in-out infinite;
+/* Claude running: brisk bob with a lean, plus the pulsing badge. */
+.pet--running .body-group {
+  animation: run-bob 0.8s ease-in-out infinite;
 }
-.pet--working .body-group {
-  animation: bob 1.1s ease-in-out infinite;
+.pet .run-spark {
+  transform-box: view-box;
+  transform-origin: 0 0;
+  animation: spin 1.4s linear infinite;
+}
+.pet .run-ping {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: run-ping 1.4s ease-out infinite;
 }
 .pet--looking_at_user .body-group {
   animation: hop 1.5s ease-in-out infinite;
@@ -342,6 +349,25 @@ input[type="range"] {
   }
   100% {
     transform: translateY(0) scale(1.08, 0.9);
+  }
+}
+@keyframes run-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(2deg);
+  }
+}
+@keyframes run-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
   }
 }
 @keyframes idle-wiggle {

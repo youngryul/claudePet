@@ -1,24 +1,84 @@
 /**
  * "Blue Cat" — an image-based pet: a white cat with a blue cap and tail.
- * The base artwork is one transparent PNG; each state adds CSS body motion
- * (`.pet--<state> .body-group`), the Sprout skin's props (thought bubble, gear, z's,
- * stars…) and a face overlay: new eyes/mouth drawn over the artwork's own.
- * Some states use a dedicated artwork instead (see `ARTWORK`).
+ * Each state picks one look from its pool (`LOOKS`) at random, and idle rotates
+ * every few minutes. A look is either the base artwork with a drawn face overlay
+ * (new eyes/mouth over the artwork's own) or a sticker artwork (`assets/bluecat/`).
+ * On top come CSS body motion (`.pet--<state> .body-group`) and the Sprout skin's
+ * props (thought bubble, gear, z's, stars…).
  */
+import { useLayoutEffect, useState } from "react";
+import { pickIndex } from "../workday";
 import type { PetState } from "../PetStates";
 import type { PetRendererProps } from "./types";
-import { PomPoms, Props, Ramen } from "./SproutPet";
+import { PomPoms, Props, Ramen, ToolCaption } from "./SproutPet";
 import blueCatUrl from "./assets/bluecat.png";
 import helicopterUrl from "./assets/bluecat-helicopter.png";
 
 const INK = "#1d2230";
 const FACE = "#fff";
 
-/** States drawn with their own artwork (no face overlay); placed in the 160×160 box. */
-const ARTWORK: Partial<Record<PetState, { href: string; x: number; y: number; size: number }>> = {
-  // Error: the cat flies off under a propeller cap.
-  dizzy: { href: helicopterUrl, x: 10, y: 6, size: 140 },
+const STICKERS = import.meta.glob("./assets/bluecat/*.png", { eager: true, import: "default" }) as Record<string, string>;
+
+type Art = { href: string; x: number; y: number; size: number };
+/** "base" = the base artwork with the drawn face for the state. */
+type Look = "base" | Art;
+
+const sticker = (name: string): Art => {
+  const href = STICKERS[`./assets/bluecat/${name}.png`];
+  if (!href) throw new Error(`missing sticker ${name}`);
+  return { href, x: 16, y: 20, size: 128 };
 };
+
+const LOOKS: Record<PetState, Look[]> = {
+  sleeping: ["base", sticker("facedown"), sticker("suit")],
+  idle: [
+    "base",
+    sticker("plain"),
+    sticker("thumbsup"),
+    sticker("standing"),
+    sticker("small"),
+    sticker("chubby"),
+    sticker("loaf"),
+    sticker("lying"),
+    sticker("baby"),
+    sticker("icecream"),
+    sticker("swim"),
+  ],
+  coding: ["base", sticker("keyboard")],
+  running: [
+    "base",
+    sticker("wakannai"),
+    sticker("glasses"),
+    sticker("grooming"),
+    sticker("watergun"),
+    sticker("camera"),
+  ],
+  looking_at_user: ["base", sticker("surprised"), sticker("drool"), sticker("teary"), sticker("tear")],
+  celebrating: ["base", sticker("flower"), sticker("shark"), sticker("cheer2")],
+  // Error: the cat flies off under a propeller cap.
+  dizzy: [{ href: helicopterUrl, x: 10, y: 6, size: 140 }],
+  // Lunch: the drawn ramen bowl needs the base artwork.
+  eating: ["base"],
+  cheering: [sticker("pompom")],
+};
+
+const IDLE_ROTATE_MS = 3 * 60_000;
+
+/** A random look for the state, re-picked whenever the state changes (idle also rotates). */
+function useLook(state: PetState): Look {
+  const pool = LOOKS[state];
+  const [pick, setPick] = useState<{ state: PetState; index: number } | null>(null);
+  // Layout effect: re-pick before paint so a state change never flashes the old look.
+  useLayoutEffect(() => {
+    const repick = () =>
+      setPick((p) => ({ state, index: pickIndex(pool.length, p?.state === state ? p.index : null) }));
+    repick();
+    if (state !== "idle") return;
+    const t = setInterval(repick, IDLE_ROTATE_MS);
+    return () => clearInterval(t);
+  }, [state, pool.length]);
+  return pool[pick?.state === state ? pick.index % pool.length : 0]!;
+}
 
 // Where the base artwork's features sit, in svg units (measured from bluecat.png).
 const EYES = [
@@ -33,7 +93,7 @@ type CatMouth = "open" | "o";
 const FACES: Partial<Record<PetState, { eyes?: CatEyes; mouth?: CatMouth }>> = {
   sleeping: { eyes: "closed" },
   coding: { eyes: "down" },
-  thinking: { eyes: "up", mouth: "o" },
+  running: { eyes: "up", mouth: "o" },
   looking_at_user: { eyes: "sparkle", mouth: "o" },
   celebrating: { eyes: "happy", mouth: "open" },
   eating: { eyes: "content" },
@@ -41,7 +101,7 @@ const FACES: Partial<Record<PetState, { eyes?: CatEyes; mouth?: CatMouth }>> = {
 };
 
 /** States that blink now and then (the overlay is hidden between blinks). */
-const BLINKS = new Set<PetState>(["idle", "coding", "working"]);
+const BLINKS = new Set<PetState>(["idle", "coding"]);
 
 function Eye({ x, y, style }: { x: number; y: number; style: CatEyes }) {
   const line = { stroke: INK, strokeWidth: 2.3, fill: "none", strokeLinecap: "round" as const };
@@ -114,7 +174,8 @@ function Face({ state }: { state: PetState }) {
 }
 
 export function BlueCatPet({ state, animate, size, detail }: PetRendererProps) {
-  const art = ARTWORK[state];
+  const look = useLook(state);
+  const art = look === "base" ? null : look;
   return (
     <div
       className={`pet pet--${state} ${animate ? "" : "pet--static"}`}
@@ -140,16 +201,12 @@ export function BlueCatPet({ state, animate, size, detail }: PetRendererProps) {
               <Face state={state} />
             </>
           )}
-          {/* pom-poms cover the V-sign hands of the artwork */}
-          {state === "cheering" && <PomPoms left={{ x: 44, y: 106 }} right={{ x: 116, y: 106 }} />}
+          {/* pom-poms cover the V-sign hands of the base artwork */}
+          {state === "cheering" && !art && <PomPoms left={{ x: 44, y: 106 }} right={{ x: 116, y: 106 }} />}
         </g>
-        {state === "eating" && <Ramen mouth={{ x: MOUTH.x, y: MOUTH.y + 1 }} />}
+        {state === "eating" && !art && <Ramen mouth={{ x: MOUTH.x, y: MOUTH.y + 1 }} />}
         <Props state={state} />
-        {state === "working" && detail && (
-          <text x={122} y={68} textAnchor="middle" fontSize={9} fontFamily="ui-monospace, monospace" fill="var(--text-muted, #667085)">
-            {detail.length > 12 ? `${detail.slice(0, 11)}…` : detail}
-          </text>
-        )}
+        {state === "running" && detail && <ToolCaption detail={detail} />}
       </svg>
     </div>
   );

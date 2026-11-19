@@ -18,8 +18,7 @@ const LOOK: Record<PetState, { eyes: EyeStyle; mouth: MouthStyle }> = {
   sleeping: { eyes: "closed", mouth: "tiny" },
   idle: { eyes: "open", mouth: "smile" },
   coding: { eyes: "down", mouth: "smile" },
-  thinking: { eyes: "up", mouth: "o" },
-  working: { eyes: "open", mouth: "flat" },
+  running: { eyes: "up", mouth: "flat" },
   looking_at_user: { eyes: "wide", mouth: "o" },
   celebrating: { eyes: "happy", mouth: "open" },
   dizzy: { eyes: "wide", mouth: "o" },
@@ -168,32 +167,47 @@ export function PomPoms({ left, right }: { left: { x: number; y: number }; right
   );
 }
 
+/**
+ * "Claude is running" badge: a pulsing orange disc with a spinning spark, shown in
+ * every state where the agent is busy so it stands apart from idle at a glance.
+ */
+export function RunningBadge() {
+  const rays = Array.from({ length: 8 }, (_, i) => i * 45);
+  return (
+    <g transform="translate(136 30)">
+      <circle className="run-ping" r={13} fill="none" stroke="#f08a3c" strokeWidth={2.4} />
+      <circle r={13} fill="#f08a3c" stroke={INK} strokeWidth={1.4} />
+      <g className="run-spark">
+        {rays.map((a) => (
+          <path key={a} d="M0 -3 L0 -9" stroke="#fff" strokeWidth={a % 90 === 0 ? 2.8 : 2} strokeLinecap="round" transform={`rotate(${a})`} />
+        ))}
+        <circle r={2.4} fill="#fff" />
+      </g>
+    </g>
+  );
+}
+
+/** The running tool's name under the badge. */
+export function ToolCaption({ detail }: { detail: string }) {
+  return (
+    <text
+      x={136}
+      y={56}
+      textAnchor="middle"
+      fontSize={9}
+      fontWeight={700}
+      fontFamily="ui-monospace, monospace"
+      fill="#c45f1c"
+    >
+      {detail.length > 12 ? `${detail.slice(0, 11)}…` : detail}
+    </text>
+  );
+}
+
 export function Props({ state }: { state: PetState }) {
   return (
     <>
-      {state === "thinking" && (
-        <g>
-          <circle cx={112} cy={50} r={3} fill="var(--pet-bubble, #fff)" stroke={INK} strokeWidth={1.2} />
-          <rect x={116} y={20} width={34} height={20} rx={10} fill="var(--pet-bubble, #fff)" stroke={INK} strokeWidth={1.4} />
-          <circle className="dot" cx={125} cy={30} r={2.4} fill={INK} />
-          <circle className="dot d1" cx={133} cy={30} r={2.4} fill={INK} />
-          <circle className="dot d2" cx={141} cy={30} r={2.4} fill={INK} />
-        </g>
-      )}
-      {state === "working" && (
-        <g transform="translate(122 44)">
-          <g className="spin">
-            <path
-              d="M0 -11 L3 -8 L7 -9 L8 -5 L11 -3 L9 0 L11 3 L8 5 L7 9 L3 8 L0 11 L-3 8 L-7 9 L-8 5 L-11 3 L-9 0 L-11 -3 L-8 -5 L-7 -9 L-3 -8 Z"
-              fill="#8d95a5"
-              stroke={INK}
-              strokeWidth={1.2}
-              strokeLinejoin="round"
-            />
-            <circle r={3.5} fill={INK} />
-          </g>
-        </g>
-      )}
+      {(state === "running" || state === "coding") && <RunningBadge />}
       {state === "looking_at_user" && (
         <g className="bob-sm">
           <rect x={112} y={26} width={18} height={24} rx={7} fill="#ffd166" stroke={INK} strokeWidth={1.4} />
@@ -283,11 +297,7 @@ export function SproutPet({ state, animate, size, detail }: PetRendererProps) {
         </g>
         {state === "eating" && <Ramen mouth={{ x: 80, y: 110 }} />}
         <Props state={state} />
-        {state === "working" && detail && (
-          <text x={122} y={68} textAnchor="middle" fontSize={9} fontFamily="ui-monospace, monospace" fill="var(--text-muted, #667085)">
-            {detail.length > 12 ? `${detail.slice(0, 11)}…` : detail}
-          </text>
-        )}
+        {state === "running" && detail && <ToolCaption detail={detail} />}
       </svg>
     </div>
   );
