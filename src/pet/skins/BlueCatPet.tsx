@@ -64,9 +64,9 @@ const LOOKS: Record<PetState, Look[]> = {
 
 const IDLE_ROTATE_MS = 3 * 60_000;
 
-/** A random look for the state, re-picked whenever the state changes (idle also rotates). */
-function useLook(state: PetState): Look {
-  const pool = LOOKS[state];
+/** A random entry of the state's pool, re-picked whenever the state changes (idle also rotates). */
+export function useLook<T>(state: PetState, looks: Record<PetState, T[]>): T {
+  const pool = looks[state];
   const [pick, setPick] = useState<{ state: PetState; index: number } | null>(null);
   // Layout effect: re-pick before paint so a state change never flashes the old look.
   useLayoutEffect(() => {
@@ -174,7 +174,7 @@ function Face({ state }: { state: PetState }) {
 }
 
 export function BlueCatPet({ state, animate, size, detail }: PetRendererProps) {
-  const look = useLook(state);
+  const look = useLook(state, LOOKS);
   const art = look === "base" ? null : look;
   return (
     <div
