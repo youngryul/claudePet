@@ -113,6 +113,8 @@ const CODEX_HOOK_FIELDS: &[&str] = &[
     // Numbers only: rewritten or added by our own hook CLI (see `collector::cli`).
     "token_usage",
     "rollout_usage",
+    // "session_log" when the event was read from the session log (`codex::watch`).
+    "via",
 ];
 const STATUSLINE_FIELDS: &[&str] = &[
     "session_id",
@@ -126,7 +128,7 @@ const STATUSLINE_FIELDS: &[&str] = &[
     "rate_limits",
 ];
 
-fn sanitize(provider: &str, channel: &str, payload: Value) -> Value {
+pub(crate) fn sanitize(provider: &str, channel: &str, payload: Value) -> Value {
     let allowed = match (provider, channel) {
         ("codex", "hook") => CODEX_HOOK_FIELDS,
         ("codex", _) => &[][..],
@@ -275,14 +277,22 @@ fn handle(
         _ => return respond(request, 400, r#"{"error":"expected a JSON object"}"#),
     };
 
-    let now = crate::paths::now_ms();
     let payload = sanitize(&provider, &channel, payload);
     let event = CollectorEvent {
         provider,
-        channel: channel.clone(),
-        received_at: now,
+        channel,
+        received_at: crate::paths::now_ms(),
         payload,
     };
+    publish(app, state, event);
+    respond(request, 200, r#"{}"#);
+}
+
+/// Record an event and forward it to the UI. Also used by in-process sources
+/// (`codex::watch`), which pass an already sanitized payload.
+pub fn publish(app: &AppHandle, state: &CollectorState, event: CollectorEvent) {
+    let now = event.received_at;
+    let channel = event.channel.clone();
     match channel.as_str() {
         "statusline" => *state.last_statusline.lock().unwrap() = Some(event.clone()),
         "hook" => {
@@ -303,7 +313,6 @@ fn handle(
             .insert(event.provider.clone(), now);
     }
     let _ = app.emit(EVENT_NAME, &event);
-    respond(request, 200, r#"{}"#);
 }
 
 #[cfg(test)]

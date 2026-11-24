@@ -46,8 +46,8 @@ export const ko: Dict = {
   metricSource: {
     claude_statusline: "Claude Code statusLine에서 받은 값",
     claude_hook: "Claude Code hooks에서 받은 값",
-    codex_hook: "Codex CLI hooks에서 받은 값",
-    codex_rollout: "Codex CLI 세션 기록에서 읽은 값",
+    codex_hook: "Codex hooks에서 받은 값",
+    codex_rollout: "Codex 세션 기록에서 읽은 값",
     process_probe: "로컬 프로세스 확인",
     derived: "AI Coding Pet이 추정한 값",
     mock: "개발자 모드 가짜 값",
@@ -230,13 +230,25 @@ export const ko: Dict = {
   },
 
   codexConnect: {
-    title: "Codex CLI 연결",
+    title: "Codex 연결",
     intro:
-      "AI Coding Pet은 이 컴퓨터에서 Codex CLI의 공식 hooks 이벤트와, 세션 기록 속 토큰·한도 숫자만 읽어요. 프롬프트와 답변 내용은 읽어 가지 않고, 다른 곳으로는 아무것도 보내지 않아요.",
+      "별도 설정이 필요 없어요. Codex(앱·CLI·IDE 확장)가 이 컴퓨터에 남기는 세션 기록을 따라가며, 진행 상태와 토큰·한도 숫자만 읽어요. 프롬프트와 답변 내용은 읽어 가지 않고, 다른 곳으로는 아무것도 보내지 않아요.",
     step1: "Codex 설치 확인",
-    configFound: "Codex 폴더를 찾았어요 (GUI 앱의 PATH에 CLI가 없어도 괜찮아요).",
-    notFound: "찾을 수 없어요. 먼저 Codex CLI를 설치하세요: https://developers.openai.com/codex",
-    step2: "Codex 폴더 (CODEX_HOME)",
+    configFound: "Codex 폴더를 찾았어요.",
+    notFound: "찾을 수 없어요. 먼저 Codex를 설치하세요: https://developers.openai.com/codex",
+    sessionsStep: "Codex 세션 기록",
+    sessionsMissing: " — 아직 없어요. Codex에서 대화를 한 번 시작하면 생겨요.",
+    enableStep: "펫에서 Codex 켜기",
+    enableHint: "아래 'Codex 켜기'를 누르면 펫이 Codex 활동에 반응해요.",
+    enabledHint: "켜져 있어요. 펫이 Codex 세션 기록을 따라가고 있어요.",
+    enableBtn: "Codex 켜기",
+    enabledMsg: "Codex를 켰어요. Codex에 메시지를 하나 보내 보세요.",
+    enableFirst: "먼저 Codex를 켜 주세요.",
+    eventsStep: "이벤트 수신",
+    waitingLog: "아직 받은 이벤트가 없어요. Codex에 메시지를 하나 보낸 뒤 다시 테스트해 보세요.",
+    advanced: "고급: hooks로 더 빠르게 반응하기 (선택)",
+    advancedHint:
+      "hooks 없이도 동작해요. hooks를 연결하고 Codex에서 신뢰(Trust)하면 이벤트가 조금 더 빨리 들어오고, 그 세션은 세션 기록 대신 hooks를 써요.",
     step3: "hooks.json 읽기",
     noHooksFile: "아직 hooks.json이 없어요 (새로 만들어져요)",
     step4: "hooks",
@@ -244,10 +256,8 @@ export const ko: Dict = {
     step5: "Codex에서 hooks 승인",
     trustHint:
       "Codex는 승인한 hooks만 실행해요. 연결한 뒤 Codex CLI에서 /hooks를 열어 AI Coding Pet hooks를 신뢰(Trust)하세요 (Codex 앱에서는 설정 > Hooks). 다시 연결하면 명령이 바뀌므로 한 번 더 승인해야 해요.",
-    collectorFail: "수집기가 앱에 연결하지 못했어요.",
-    waiting: "수집기는 정상이에요. hooks를 승인한 뒤 Codex에 메시지를 하나 보내 보세요.",
     arriving: "연결됐어요. Codex 이벤트가 들어오고 있어요.",
-    connectBtn: "Codex CLI 연결",
+    connectBtn: "hooks 연결",
     addedHooks:
       " (Codex가 허용하는 곳은 비동기, Codex를 막지 않음): SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, PermissionRequest, PostModelRequest, PreCompact, PostCompact, SubagentStart, SubagentStop, Stop, Interrupt, SessionEnd.",
     addedUsage:

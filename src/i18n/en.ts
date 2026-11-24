@@ -47,8 +47,8 @@ export const en = {
   metricSource: {
     claude_statusline: "Reported by Claude Code statusLine",
     claude_hook: "Reported by Claude Code hooks",
-    codex_hook: "Reported by Codex CLI hooks",
-    codex_rollout: "Read from the Codex CLI session log",
+    codex_hook: "Reported by Codex hooks",
+    codex_rollout: "Read from the Codex session log",
     process_probe: "Local process check",
     derived: "Estimated by AI Coding Pet",
     mock: "Developer mode mock value",
@@ -231,13 +231,25 @@ export const en = {
   },
 
   codexConnect: {
-    title: "Connect Codex CLI",
+    title: "Connect Codex",
     intro:
-      "AI Coding Pet reads Codex CLI's official hook events and only the token and limit numbers from its session log on this computer. Prompts and replies are never read out, and nothing is sent anywhere else.",
+      "No setup needed. AI Coding Pet follows the session logs Codex (app, CLI or IDE extension) keeps on this computer and reads only progress and token / limit numbers. Prompts and replies are never read out, and nothing is sent anywhere else.",
     step1: "Codex installed",
-    configFound: "Codex folder found (CLI not on PATH for GUI apps - that's fine).",
-    notFound: "Not found. Install Codex CLI first: https://developers.openai.com/codex",
-    step2: "Codex folder (CODEX_HOME)",
+    configFound: "Codex folder found.",
+    notFound: "Not found. Install Codex first: https://developers.openai.com/codex",
+    sessionsStep: "Codex session logs",
+    sessionsMissing: " — not there yet. It appears once you start a conversation in Codex.",
+    enableStep: "Turn Codex on in the pet",
+    enableHint: "Press 'Turn on Codex' below and the pet reacts to Codex activity.",
+    enabledHint: "On. The pet is following Codex's session logs.",
+    enableBtn: "Turn on Codex",
+    enabledMsg: "Codex is on. Send Codex a message.",
+    enableFirst: "Turn Codex on first.",
+    eventsStep: "Receiving events",
+    waitingLog: "No events yet. Send Codex a message, then test again.",
+    advanced: "Advanced: faster reactions with hooks (optional)",
+    advancedHint:
+      "Everything works without hooks. If you connect hooks and trust them in Codex, events arrive a little sooner, and those sessions use hooks instead of the session log.",
     step3: "Read hooks.json",
     noHooksFile: "No hooks.json yet (it will be created)",
     step4: "hooks",
@@ -245,10 +257,8 @@ export const en = {
     step5: "Approve the hooks in Codex",
     trustHint:
       "Codex only runs hooks you have approved. After connecting, open /hooks in the Codex CLI and trust the AI Coding Pet hooks (in the Codex app: Settings > Hooks). Approve again after reconnecting, since the commands change.",
-    collectorFail: "The collector could not reach the app.",
-    waiting: "Collector OK. After approving the hooks, send Codex a message.",
     arriving: "Connected. Codex events are arriving.",
-    connectBtn: "Connect Codex CLI",
+    connectBtn: "Connect hooks",
     addedHooks:
       " (async where Codex allows, never block Codex): SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, PermissionRequest, PostModelRequest, PreCompact, PostCompact, SubagentStart, SubagentStop, Stop, Interrupt, SessionEnd.",
     addedUsage:

@@ -1,5 +1,5 @@
 /**
- * RAW_EVENT -> DERIVED_STATE for Codex CLI. Codex hooks mirror Claude Code's closely;
+ * RAW_EVENT -> DERIVED_STATE for Codex (hooks, or the same events read from its session log). Codex hooks mirror Claude Code's closely;
  * the differences are PostModelRequest (outcome of each model call), Interrupt (Esc)
  * and the absence of a Notification event. Decay and salience are shared
  * (`core/sessionActivity`).
@@ -8,10 +8,10 @@ import type { AIActivityState } from "../core/types";
 import { setFromHook, type SessionActivity } from "../core/sessionActivity";
 import type { ParsedCodexHook } from "./codexParse";
 
-const set = (s: SessionActivity, activity: AIActivityState, now: number, detail: string | null = null) =>
-  setFromHook(s, "codex_hook", activity, now, detail);
-
 export function reduceCodexHook(prev: SessionActivity, hook: ParsedCodexHook, now: number): SessionActivity {
+  const source = hook.fromLog ? "codex_rollout" : "codex_hook";
+  const set = (s: SessionActivity, activity: AIActivityState, at: number, detail: string | null = null) =>
+    setFromHook(s, source, activity, at, detail);
   const s = { ...prev, lastEventAt: now, hooksSeen: true, ended: false };
   // Subagents share the parent's session id; their own start/stop must not end the
   // parent's turn, so they only keep the session busy.

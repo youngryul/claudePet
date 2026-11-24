@@ -1,7 +1,9 @@
 /**
- * OpenAI Codex CLI provider. Codex has no statusLine, so everything comes from hooks:
- * activity from the events themselves, token usage from PostModelRequest, and context
- * size + 5h / weekly limits from the session log numbers our hook CLI attaches.
+ * OpenAI Codex provider (CLI, desktop app, IDE extensions). The backend follows Codex's
+ * session logs and turns them into hook-shaped events, so this works with no setup.
+ * Optional hooks deliver the same events a little sooner; once a session has real
+ * hooks, its log events are ignored so nothing is counted twice. Token usage comes
+ * from PostModelRequest, context size and 5h / weekly limits from the log numbers.
  */
 import { backend } from "@/lib/backend";
 import { Emitter } from "../core/Emitter";
@@ -44,7 +46,7 @@ export function toLastCall(t: CodexTokens): NonNullable<UsageObservation["lastCa
 
 export class CodexProvider implements AIProvider {
   readonly id = "codex";
-  readonly name = "Codex CLI";
+  readonly name = "Codex";
   readonly implemented = true;
   readonly capabilities: ProviderCapabilities = {
     activity: true,
@@ -60,6 +62,8 @@ export class CodexProvider implements AIProvider {
   /** Sessions whose PostModelRequest reports tokens: the session log is then only
    *  used for limits and context, so no call is counted twice. */
   private modelHookUsage = new Set<string>();
+  /** Sessions that real hooks report on; their session-log events are dropped. */
+  private hookSessions = new Set<string>();
   private fiveHour: RateEntry | null = null;
   private weekly: RateEntry | null = null;
   private processRunning: boolean | null = null;
@@ -126,6 +130,8 @@ export class CodexProvider implements AIProvider {
     const h = parseCodexHook(e.payload, e.receivedAt);
     if (!h) return;
     const id = h.sessionId ?? UNKNOWN_SESSION;
+    if (h.fromLog && this.hookSessions.has(id)) return;
+    if (!h.fromLog) this.hookSessions.add(id);
     this.sessions.set(id, reduceCodexHook(this.sessions.get(id) ?? newSession(id, now), h, now));
     if (h.model) this.models.set(id, h.model);
     this.lastEventAt = Math.max(this.lastEventAt ?? 0, e.receivedAt);
@@ -187,6 +193,7 @@ export class CodexProvider implements AIProvider {
         this.context.delete(id);
         this.models.delete(id);
         this.modelHookUsage.delete(id);
+        this.hookSessions.delete(id);
         continue;
       }
       const next = decay(s, now);

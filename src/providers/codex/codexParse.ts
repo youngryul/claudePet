@@ -1,5 +1,6 @@
 /**
- * Null-safe parsing of Codex CLI hook payloads as forwarded by our collector
+ * Null-safe parsing of Codex hook payloads as forwarded by our collector, including the
+ * hook-shaped events the app derives from Codex's session log (`via: "session_log"`)
  * (https://learn.chatgpt.com/docs/hooks). The collector keeps only whitelisted fields
  * and adds numbers-only `rollout_usage` read from the session log, whose format is
  * internal to Codex — so every field here is optional.
@@ -38,6 +39,8 @@ export interface ParsedCodexHook {
   status: string | null;
   error: string | null;
   isSubagent: boolean;
+  /** Read from the session log by the app (no hook involved). */
+  fromLog: boolean;
   tokenUsage: CodexTokens | null;
   rollout: CodexRolloutUsage | null;
 }
@@ -109,6 +112,7 @@ export function parseCodexHook(payload: unknown, receivedAt: number): ParsedCode
     status: str(p.status),
     error: str(p.error),
     isSubagent: str(p.agent_id) !== null,
+    fromLog: p.via === "session_log",
     tokenUsage: parseTokens(p.token_usage),
     rollout: parseRollout(p.rollout_usage, receivedAt),
   };

@@ -1,5 +1,5 @@
 /**
- * Per-session activity shared by every hook-based provider (Claude Code, Codex CLI):
+ * Per-session activity shared by every hook-based provider (Claude Code, Codex):
  * the session record, time-based decay, which session wins, and when to call the
  * agent offline. Each provider maps its own hook events onto `SessionActivity`.
  */

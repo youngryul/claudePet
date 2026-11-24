@@ -26,7 +26,8 @@ fn looks_like_claude_code(name: &str, cmd: &[std::ffi::OsString]) -> bool {
 /// Codex CLI is a native `codex` binary (the npm package launches it from node, and
 /// the Codex desktop app runs it as its app server, where hooks fire too).
 fn looks_like_codex(name: &str, cmd: &[std::ffi::OsString]) -> bool {
-    if name == "codex" || name == "codex.exe" {
+    // The desktop app's own executable is `Codex.exe` on Windows.
+    if name.eq_ignore_ascii_case("codex") || name.eq_ignore_ascii_case("codex.exe") {
         return true;
     }
     let is_node = name == "node" || name == "node.exe";

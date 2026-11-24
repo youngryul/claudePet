@@ -164,6 +164,8 @@ export interface CodexDetection {
   version: string | null;
   homeDir: string | null;
   homeDirExists: boolean;
+  sessionsDir: string | null;
+  sessionsDirExists: boolean;
   hooksPath: string | null;
   hooksExists: boolean;
   hooksError: string | null;

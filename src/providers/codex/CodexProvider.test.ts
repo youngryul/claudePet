@@ -120,6 +120,30 @@ describe("CodexProvider usage", () => {
     expect(usage[0]?.lastCall?.outputTokens).toBe(4);
   });
 
+  it("works from the session log alone, with no hooks", async () => {
+    const p = new CodexProvider(() => 5_000);
+    const usage: UsageObservation[] = [];
+    p.onUsage((o) => usage.push(o));
+    const log = (e: Record<string, unknown>) => ev({ via: "session_log", ...e });
+    p.ingest(log({ hook_event_name: "UserPromptSubmit" }), { replay: false });
+    p.ingest(log({ hook_event_name: "PreToolUse", tool_name: "shell" }), { replay: false });
+    const st = await p.getStatus();
+    expect([st.activity, st.activityDetail, st.activitySource]).toEqual(["tool", "shell", "codex_rollout"]);
+    p.ingest(log({ hook_event_name: "PostModelRequest", status: "completed", rollout_usage: { last: { input_tokens: 7, output_tokens: 1 } } }), { replay: false });
+    expect(usage.map((u) => u.lastCall?.inputTokens)).toEqual([7]);
+  });
+
+  it("ignores the session log for a session that real hooks report on", async () => {
+    const p = new CodexProvider(() => 5_000);
+    const usage: UsageObservation[] = [];
+    p.onUsage((o) => usage.push(o));
+    p.ingest(ev({ hook_event_name: "PreToolUse", tool_name: "Bash" }), { replay: false });
+    p.ingest(ev({ via: "session_log", hook_event_name: "Stop" }), { replay: false });
+    p.ingest(ev({ via: "session_log", hook_event_name: "PostModelRequest", rollout_usage: { last: { input_tokens: 7, output_tokens: 1 } } }), { replay: false });
+    expect((await p.getStatus()).activity).toBe("tool");
+    expect(usage).toEqual([]);
+  });
+
   it("does not re-fire XP events on replay", () => {
     const p = new CodexProvider(() => 5_000);
     const life: LifecycleEvent[] = [];

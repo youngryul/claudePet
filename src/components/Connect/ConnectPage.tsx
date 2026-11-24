@@ -6,7 +6,7 @@ type Agent = "claude" | "codex";
 
 const AGENTS: { id: Agent; name: string }[] = [
   { id: "claude", name: "Claude Code" },
-  { id: "codex", name: "Codex CLI" },
+  { id: "codex", name: "Codex" },
 ];
 
 /** One "Connect" tab with a switch per supported agent. */

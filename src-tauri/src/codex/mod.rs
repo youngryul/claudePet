@@ -1,12 +1,16 @@
-//! OpenAI Codex CLI integration: detection, `hooks.json` preview/patch, connection test.
+//! OpenAI Codex integration. The pet follows Codex's session logs without any setup
+//! (`watch`), which covers the CLI, the desktop app and IDE extensions alike. Hooks
+//! are an optional extra for slightly faster reactions: detection, `hooks.json`
+//! preview/patch and a connection test live here.
 //!
-//! Same flow as the Claude integration: detect -> read `$CODEX_HOME/hooks.json` -> show
+//! The hooks flow is the same as the Claude integration: detect -> read `$CODEX_HOME/hooks.json` -> show
 //! a preview -> user approves -> patch with backup and a hash check -> test. Codex only
 //! runs hooks the user has trusted, so after connecting the user approves them once in
 //! Codex (`/hooks` in the CLI, or Settings > Hooks in the app).
 
 pub mod hooks_patch;
 pub mod rollout;
+pub mod watch;
 
 use crate::claude::settings_patch::Change;
 use crate::claude::{claude_version as cli_version, exe_path, no_window, pretty, sha256_hex};
@@ -152,6 +156,9 @@ pub struct CodexDetection {
     pub version: Option<String>,
     pub home_dir: Option<String>,
     pub home_dir_exists: bool,
+    /// Session logs the pet follows without hooks (`watch`).
+    pub sessions_dir: Option<String>,
+    pub sessions_dir_exists: bool,
     pub hooks_path: Option<String>,
     pub hooks_exists: bool,
     pub hooks_error: Option<String>,
@@ -177,6 +184,8 @@ pub async fn codex_detect() -> CodexDetection {
             version,
             home_dir: home.map(|d| d.display().to_string()),
             home_dir_exists,
+            sessions_dir: watch::sessions_dir().map(|d| d.display().to_string()),
+            sessions_dir_exists: watch::sessions_dir().is_some_and(|d| d.is_dir()),
             hooks_path: hooks_path().map(|p| p.display().to_string()),
             hooks_exists,
             hooks_error,

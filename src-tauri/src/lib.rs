@@ -191,6 +191,7 @@ pub fn run() {
             if let Err(e) = collector::server::start(handle.clone(), collector_state.clone()) {
                 log::error!("collector failed to start: {e}");
             }
+            codex::watch::spawn(handle.clone(), collector_state.clone());
             tray::build(&handle)?;
 
             if let Some(pet) = app.get_webview_window("pet") {
