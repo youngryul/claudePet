@@ -2,19 +2,38 @@ import { useT } from "@/i18n";
 import { hoursFor, isValidHours, isValidSchedule, type DayHours, type WorkSchedule } from "@/pet/workday";
 import { useSettings } from "@/stores/settingsStore";
 
-const timeInput = "rounded-[9px] px-2 py-1 text-[13px] tnum outline-none";
+const timeBox = "flex items-center rounded-[9px] px-1 py-1 text-[13px] tnum";
 const timeStyle = { background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text)" };
+const selectCls = "appearance-none bg-transparent px-1 text-center outline-none cursor-pointer";
+const optionStyle = { background: "var(--surface-2)", color: "var(--text)" };
 
+const pad = (n: number) => String(n).padStart(2, "0");
+const HOURS = Array.from({ length: 24 }, (_, i) => pad(i));
+/** Minutes are offered in 10-minute steps. */
+const MINUTES = Array.from({ length: 6 }, (_, i) => pad(i * 10));
+
+/** Hour + minute pickers (10-minute steps). An off-step saved minute stays selectable so it isn't lost. */
 function Time({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
+  const [hh = "09", mm = "00"] = value.split(":");
+  const minutes = MINUTES.includes(mm) ? MINUTES : [...MINUTES, mm].sort();
   return (
-    <input
-      type="time"
-      aria-label={label}
-      value={value}
-      onChange={(e) => e.target.value && onChange(e.target.value)}
-      className={timeInput}
-      style={timeStyle}
-    />
+    <div className={timeBox} style={timeStyle} role="group" aria-label={label}>
+      <select aria-label={`${label} (h)`} value={hh} onChange={(e) => onChange(`${e.target.value}:${mm}`)} className={selectCls}>
+        {HOURS.map((h) => (
+          <option key={h} value={h} style={optionStyle}>
+            {h}
+          </option>
+        ))}
+      </select>
+      <span className="text-[color:var(--text-muted)]">:</span>
+      <select aria-label={`${label} (m)`} value={mm} onChange={(e) => onChange(`${hh}:${e.target.value}`)} className={selectCls}>
+        {minutes.map((m) => (
+          <option key={m} value={m} style={optionStyle}>
+            {m}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }
 
